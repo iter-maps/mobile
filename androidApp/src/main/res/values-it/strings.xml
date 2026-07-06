@@ -81,6 +81,7 @@
   <string name="offline_installing">Installazione…</string>
   <string name="offline_empty">Nessuna area offline</string>
   <string name="offline_error_too_large">Area troppo grande — avvicina lo zoom e riprova</string>
+  <string name="offline_error_invalid_area">Area non valida — modificala e riprova</string>
   <string name="offline_error_busy">Server occupato — riprova tra poco</string>
   <string name="offline_area_zoom">fino a zoom %1$d</string>
   <string name="offline_downloaded_on">Scaricata il %1$s</string>

@@ -78,10 +78,12 @@ fun OfflinePage(
           )
         }
         is DownloadState.Failed -> {
+          // Error plus a retry button, so a failure is never a dead end.
           Text(
             text = stringResource(
               when {
                 OfflineViewModel.isTooLarge(d.code) -> R.string.offline_error_too_large
+                OfflineViewModel.isInvalidArea(d.code) -> R.string.offline_error_invalid_area
                 OfflineViewModel.isBusy(d.code) -> R.string.offline_error_busy
                 else -> R.string.error_generic
               },
@@ -90,22 +92,9 @@ fun OfflinePage(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(vertical = 8.dp),
           )
+          DownloadButton(currentViewportBBox, viewModel, label = R.string.action_retry)
         }
-        DownloadState.Idle -> {
-          Button(
-            onClick = {
-              currentViewportBBox()?.let { viewModel.downloadArea(it) }
-            },
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth(),
-          ) {
-            Icon(Icons.Rounded.CloudDownload, contentDescription = null)
-            Text(
-              text = stringResource(R.string.offline_download_current),
-              modifier = Modifier.padding(start = 8.dp),
-            )
-          }
-        }
+        DownloadState.Idle -> DownloadButton(currentViewportBBox, viewModel)
       }
     }
 
@@ -123,6 +112,22 @@ fun OfflinePage(
         }
       }
     }
+  }
+}
+
+@Composable
+private fun DownloadButton(
+  currentViewportBBox: () -> String?,
+  viewModel: OfflineViewModel,
+  label: Int = R.string.offline_download_current,
+) {
+  Button(
+    onClick = { currentViewportBBox()?.let { viewModel.downloadArea(it) } },
+    shape = MaterialTheme.shapes.medium,
+    modifier = Modifier.fillMaxWidth(),
+  ) {
+    Icon(Icons.Rounded.CloudDownload, contentDescription = null)
+    Text(text = stringResource(label), modifier = Modifier.padding(start = 8.dp))
   }
 }
 

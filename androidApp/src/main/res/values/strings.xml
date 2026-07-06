@@ -81,6 +81,7 @@
   <string name="offline_installing">Installing…</string>
   <string name="offline_empty">No offline areas yet</string>
   <string name="offline_error_too_large">Area too large — zoom in and retry</string>
+  <string name="offline_error_invalid_area">Invalid map area — adjust and retry</string>
   <string name="offline_error_busy">Server busy — try again in a moment</string>
   <string name="offline_area_zoom">up to zoom %1$d</string>
   <string name="offline_downloaded_on">Downloaded %1$s</string>

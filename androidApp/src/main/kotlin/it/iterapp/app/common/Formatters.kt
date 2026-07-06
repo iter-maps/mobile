@@ -3,7 +3,15 @@ package it.iterapp.app.common
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.roundToInt
+
+/**
+ * The router's timezone. OTP interprets the `date`/`time` plan arguments in the
+ * network's local zone, so departure times must be formatted there, not in the
+ * device zone. The served network is Italian; revisit when coverage widens.
+ */
+private val ROUTER_ZONE: TimeZone = TimeZone.getTimeZone("Europe/Rome")
 
 /** `14:05` in the device locale's 24h clock. */
 fun formatClock(epochMs: Long): String =
@@ -30,9 +38,9 @@ fun formatDelay(seconds: Double): String {
   return if (s >= 90) "${(s / 60.0).roundToInt()} min" else "$s s"
 }
 
-/** OTP `YYYY-MM-DD` + `HH:MM` for a plan departure, from epoch millis. */
+/** OTP `YYYY-MM-DD` + `HH:MM` for a plan departure, in the router's zone. */
 fun planDateTime(epochMs: Long): Pair<String, String> {
-  val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(epochMs))
-  val time = SimpleDateFormat("HH:mm", Locale.US).format(Date(epochMs))
-  return date to time
+  val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = ROUTER_ZONE }
+  val timeFmt = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = ROUTER_ZONE }
+  return dateFmt.format(Date(epochMs)) to timeFmt.format(Date(epochMs))
 }
