@@ -154,7 +154,15 @@ fun HomeScreen() {
         routeLines = routeLines,
         routeDots = routeDots,
         userLocation = userLocation,
-        onMapTap = { },
+        onMapTap = { point ->
+          // Identify only from the browsing pages, never mid-planning.
+          if (nav.current is SheetPage.Home || nav.current is SheetPage.PlaceDetail) {
+            homeViewModel.identify(point) { result ->
+              if (nav.current is SheetPage.PlaceDetail) nav.pop()
+              nav.push(SheetPage.PlaceDetail(result))
+            }
+          }
+        },
         modifier = Modifier.fillMaxSize(),
       )
       MapControls(

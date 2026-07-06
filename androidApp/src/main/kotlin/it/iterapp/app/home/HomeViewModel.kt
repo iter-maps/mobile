@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import it.iterapp.app.location.LocationProvider
 import it.iterapp.core.model.GeoPoint
 import it.iterapp.core.model.SearchResult
+import it.iterapp.core.repo.SearchRepository
 import it.iterapp.core.settings.IterSettings
 import it.iterapp.core.settings.MapMode
 import it.iterapp.core.settings.ThemeMode
 import it.iterapp.core.wire.StyleNames
+import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,10 +20,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class HomeViewModel(
   private val settings: IterSettings,
   private val locationProvider: LocationProvider,
+  private val searchRepository: SearchRepository,
 ) : ViewModel() {
 
   /** Set by the UI on composition (isSystemInDarkTheme + theme setting). */
@@ -69,5 +74,27 @@ class HomeViewModel(
 
   fun select(place: SearchResult?) {
     selectedPlace.value = place
+  }
+
+  private var identifyJob: Job? = null
+
+  /**
+   * Apple-Maps-style tap-to-identify: reverse-geocode the tapped point and
+   * surface it as the selected place. Silent on failure — a map tap must
+   * never error at the user.
+   */
+  fun identify(point: GeoPoint, onResult: (SearchResult) -> Unit) {
+    identifyJob?.cancel()
+    identifyJob = viewModelScope.launch {
+      val result = try {
+        searchRepository.reverse(point, Locale.getDefault().language)
+      } catch (_: Exception) {
+        null
+      }
+      if (result != null) {
+        selectedPlace.value = result
+        onResult(result)
+      }
+    }
   }
 }

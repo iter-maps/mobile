@@ -172,6 +172,7 @@ fun IterMapView(
   LaunchedEffect(mapRef, styleUrl) {
     val map = mapRef ?: return@LaunchedEffect
     map.setStyle(Style.Builder().fromUri(styleUrl)) { style ->
+      applyTransitOverlayLayers(style)
       applyOverlayLayers(style, routeLines, routeDots, userLocation)
     }
   }
@@ -199,6 +200,39 @@ fun IterMapView(
       lifecycleOwner.lifecycle.removeObserver(observer)
       mapView.onDestroy()
     }
+  }
+}
+
+/**
+ * Transit styles pre-wire `overlay-*` GeoJSON sources but deliberately emit
+ * no layers — drawing them is the client's job. Reference the existing
+ * sources by id; on standard styles (no such sources) draw nothing.
+ */
+private fun applyTransitOverlayLayers(style: Style) {
+  if (style.getSource("overlay-transit-lines") != null &&
+    style.getLayer("iter-overlay-lines") == null
+  ) {
+    style.addLayer(
+      LineLayer("iter-overlay-lines", "overlay-transit-lines").withProperties(
+        PropertyFactory.lineColor("#7B4EA3"),
+        PropertyFactory.lineWidth(2.5f),
+        PropertyFactory.lineOpacity(0.75f),
+        PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+        PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+      ),
+    )
+  }
+  if (style.getSource("overlay-metro-stations") != null &&
+    style.getLayer("iter-overlay-stations") == null
+  ) {
+    style.addLayer(
+      CircleLayer("iter-overlay-stations", "overlay-metro-stations").withProperties(
+        PropertyFactory.circleColor("#FFFFFF"),
+        PropertyFactory.circleRadius(3.5f),
+        PropertyFactory.circleStrokeColor("#4248C9"),
+        PropertyFactory.circleStrokeWidth(2f),
+      ),
+    )
   }
 }
 
