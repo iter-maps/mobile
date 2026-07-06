@@ -1,0 +1,18 @@
+# iOS shell parity (in progress)
+
+The iOS app tracks the Android shell feature-for-feature on the shared core,
+rendering it in SwiftUI with Liquid Glass materials (ADR 0009). This file is
+the parity ledger; Android is the reference implementation of the UX, not of
+the look.
+
+- **Built:** XcodeGen project (ADR 0010), shared-framework integration,
+  MapLibre iOS via SPM, the map + sheet shell, search, place detail, planning
+  and boards pages in first pass.
+- **In progress:** visual pass on Liquid Glass chrome (glass button styles,
+  sheet materials, morphing transitions) with the pre-26 material fallback.
+- **Planned:** offline area management, settings parity, onboarding, Live
+  Activities for trips ([`turn-by-turn-navigation.md`](turn-by-turn-navigation.md)).
+- **Note:** built on non-Mac hosts the Swift sources are review-verified only;
+  CI's macOS lane is the compile gate ([`release-hardening.md`](release-hardening.md)).
+
+Decision: ADR 0002, 0009, 0010.
