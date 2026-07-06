@@ -1,6 +1,7 @@
 package it.iterapp.app.location
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -52,6 +53,9 @@ class LocationProvider(private val context: Context) {
   }
 
   /** Continuous updates while collected; ~3s interval, provider-dependent. */
+  // Permission is checked on entry and SecurityException handled; lint cannot
+  // follow the guard through callbackFlow's early returns.
+  @SuppressLint("MissingPermission")
   fun updates(): Flow<GeoPoint> = callbackFlow {
     if (!hasPermission()) {
       close()
