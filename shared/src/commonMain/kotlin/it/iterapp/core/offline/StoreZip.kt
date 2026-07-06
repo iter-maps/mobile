@@ -4,6 +4,7 @@ import okio.Buffer
 import okio.FileHandle
 import okio.FileSystem
 import okio.Path
+import okio.use
 
 /**
  * Minimal ZIP extractor for the offline bundle format: the gateway ships

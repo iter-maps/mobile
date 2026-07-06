@@ -7,6 +7,7 @@ import it.iterapp.core.wire.OfflineManifest
 import okio.FileSystem
 import okio.Path
 import okio.buffer
+import okio.use
 
 /** One downloaded offline area on disk. */
 data class OfflineArea(
