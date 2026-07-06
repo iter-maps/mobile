@@ -13,9 +13,12 @@ kotlin {
     }
   }
 
+  // iosX64 covers the Intel iOS Simulator (Intel Macs and Intel CI runners);
+  // without it the app fails to link on an x86_64 simulator build.
   listOf(
     iosArm64(),
     iosSimulatorArm64(),
+    iosX64(),
   ).forEach { target ->
     target.binaries.framework {
       baseName = "IterCore"

@@ -24,7 +24,7 @@ jobs:
       - name: Build, test, lint
         run: ./gradlew build
       - name: Type-check shared iOS targets
-        run: ./gradlew :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
+        run: ./gradlew :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosX64
 
   ios:
     name: iOS
