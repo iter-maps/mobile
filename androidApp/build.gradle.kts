@@ -61,6 +61,8 @@ dependencies {
 
   implementation(libs.maplibre.android)
   implementation(libs.materialkolor)
+  implementation(libs.coil.compose)
+  implementation(libs.coil.network.okhttp)
 
   testImplementation(kotlin("test"))
   testImplementation(libs.kotlinx.coroutines.test)

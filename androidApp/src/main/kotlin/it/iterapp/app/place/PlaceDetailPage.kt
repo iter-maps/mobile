@@ -3,12 +3,20 @@ package it.iterapp.app.place
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Accessible
 import androidx.compose.material.icons.rounded.Directions
@@ -98,6 +106,30 @@ fun PlaceDetailPage(
       }
 
       enriched?.let { placeInfo ->
+        val imageUrl = viewModel.imageUrl(placeInfo)
+        if (imageUrl != null) {
+          var loaded by remember(imageUrl) { mutableStateOf(false) }
+          AsyncImage(
+            model = imageUrl,
+            contentDescription = placeInfo.name,
+            contentScale = ContentScale.Crop,
+            onState = { loaded = it is AsyncImagePainter.State.Success },
+            modifier = Modifier
+              .fillMaxWidth()
+              .aspectRatio(16f / 9f)
+              .clip(MaterialTheme.shapes.medium),
+          )
+          // Attribution is only meaningful once the image is actually shown.
+          if (loaded) {
+            placeInfo.image?.attribution?.let { attribution ->
+              Text(
+                text = stringResource(R.string.place_photo_attribution, attribution),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          }
+        }
         placeInfo.summary?.let { summary ->
           Text(
             text = summary,
@@ -112,13 +144,6 @@ fun PlaceDetailPage(
             facets.openingHours?.let { FacetRow(Icons.Rounded.Schedule, it) }
             facets.wheelchair?.let { FacetRow(Icons.AutoMirrored.Rounded.Accessible, it) }
           }
-        }
-        placeInfo.image?.attribution?.let { attribution ->
-          Text(
-            text = stringResource(R.string.place_photo_attribution, attribution),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
         }
       }
     }
