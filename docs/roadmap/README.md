@@ -14,7 +14,10 @@ Glass** on iOS. "Decision" pointers below name the relevant ADRs by number
 
 - **Map & styles** ✅ done (ADR 0007) — MapLibre Native pointed at the gateway
   styles with PMTiles, light/dark and transit variants, overlay layers drawn
-  client-side. **Remaining:** style-preview thumbnails in the layer picker;
+  client-side. **Remaining:** a dedicated transit-overlay and stop-marker
+  redesign — the first-pass rendering is illegible
+  ([`transit-overlay-redesign.md`](transit-overlay-redesign.md)); initial
+  camera on the user's region; style-preview thumbnails in the layer picker;
   scoped overlay refresh.
 - **Search & places** ✅ done (ADR 0004, 0005) — Photon typeahead with location
   bias, reverse geocoding, place details with Wikimedia enrichment.
