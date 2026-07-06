@@ -21,6 +21,7 @@ struct IterApp: App {
   @StateObject private var planning: PlanningModel
   @StateObject private var boards: BoardsModel
   @StateObject private var offline: OfflineModel
+  @StateObject private var place: PlaceModel
   @StateObject private var settings: SettingsModel
 
   init() {
@@ -32,6 +33,7 @@ struct IterApp: App {
     _planning = StateObject(wrappedValue: PlanningModel(core: core, location: location))
     _boards = StateObject(wrappedValue: BoardsModel(core: core))
     _offline = StateObject(wrappedValue: OfflineModel(core: core))
+    _place = StateObject(wrappedValue: PlaceModel(core: core))
     _settings = StateObject(wrappedValue: SettingsModel(core: core))
   }
 
@@ -44,6 +46,7 @@ struct IterApp: App {
         .environmentObject(planning)
         .environmentObject(boards)
         .environmentObject(offline)
+        .environmentObject(place)
         .environmentObject(settings)
     }
   }

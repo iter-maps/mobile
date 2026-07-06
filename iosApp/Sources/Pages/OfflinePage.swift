@@ -46,28 +46,39 @@ struct OfflinePage: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
       }
+    case .installing:
+      VStack(alignment: .leading, spacing: 8) {
+        ProgressView()
+        Text(Strings.offlineInstalling)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
     case .failed(let code):
       VStack(alignment: .leading, spacing: 8) {
         Text(failureMessage(code))
           .font(.subheadline)
           .foregroundStyle(.red)
-        Button(Strings.offlineDownloadCurrent) {
-          offline.dismissError()
-        }
+        // Retry the download rather than merely clearing the error.
+        downloadButton(Strings.actionRetry)
       }
     case .idle:
-      Button {
-        if let bbox = currentBBox() {
-          offline.downloadArea(bbox: bbox)
-        }
-      } label: {
-        Label(Strings.offlineDownloadCurrent, systemImage: "arrow.down.circle.fill")
+      downloadButton(Strings.offlineDownloadCurrent)
+    }
+  }
+
+  private func downloadButton(_ title: String) -> some View {
+    Button {
+      if let bbox = currentBBox() {
+        offline.downloadArea(bbox: bbox)
       }
+    } label: {
+      Label(title, systemImage: "arrow.down.circle.fill")
     }
   }
 
   private func failureMessage(_ code: String?) -> String {
     if OfflineModel.isTooLarge(code) { return Strings.offlineErrorTooLarge }
+    if OfflineModel.isInvalidArea(code) { return Strings.offlineErrorInvalidArea }
     if OfflineModel.isBusy(code) { return Strings.offlineErrorBusy }
     return Strings.errorGeneric
   }

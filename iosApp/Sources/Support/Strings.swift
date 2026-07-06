@@ -5,6 +5,7 @@ import Foundation
 enum Strings {
   // Generic
   static let actionDelete = "Delete"
+  static let actionRetry = "Retry"
   static let errorNetwork = "Can't reach the server"
   static let errorGeneric = "Something went wrong"
 
@@ -22,6 +23,7 @@ enum Strings {
   // Place detail
   static let placeDirections = "Directions"
   static let placeTrainBoard = "Train board"
+  static func placePhotoAttribution(_ author: String) -> String { "Photo: \(author)" }
 
   // Planning
   static let planningTitle = "Directions"
@@ -60,8 +62,10 @@ enum Strings {
   static let offlineTitle = "Offline maps"
   static let offlineDownloadCurrent = "Download current area"
   static func offlineDownloading(_ bytes: String) -> String { "Downloading… \(bytes)" }
+  static let offlineInstalling = "Installing…"
   static let offlineEmpty = "No offline areas yet"
   static let offlineErrorTooLarge = "Area too large — zoom in and retry"
+  static let offlineErrorInvalidArea = "Invalid map area — adjust and retry"
   static let offlineErrorBusy = "Server busy — try again in a moment"
   static func offlineAreaZoom(_ zoom: Int) -> String { "up to zoom \(zoom)" }
 

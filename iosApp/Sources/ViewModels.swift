@@ -355,6 +355,7 @@ final class BoardsModel: ObservableObject {
 enum DownloadState {
   case idle
   case downloading(read: Int64, total: Int64?)
+  case installing
   case failed(code: String?)
 }
 
@@ -377,6 +378,11 @@ final class OfflineModel: ObservableObject {
   /// new offline area.
   func downloadArea(bbox: String) {
     if case .downloading = download { return }
+    // Pre-flight the server's area cap so an over-large viewport fails fast.
+    if Self.exceedsAreaCap(bbox) {
+      download = .failed(code: "AREA_TOO_LARGE")
+      return
+    }
     download = .downloading(read: 0, total: nil)
     Task { [weak self] in
       guard let self else { return }
@@ -391,7 +397,12 @@ final class OfflineModel: ObservableObject {
             let readValue = read.int64Value
             let totalValue = total?.int64Value
             Task { @MainActor in
-              self.download = .downloading(read: readValue, total: totalValue)
+              // Once bytes are in, the remaining work is the on-device unpack.
+              if let totalValue, readValue >= totalValue {
+                self.download = .installing
+              } else {
+                self.download = .downloading(read: readValue, total: totalValue)
+              }
             }
           }
         )
@@ -401,6 +412,13 @@ final class OfflineModel: ObservableObject {
         self.download = .failed(code: Self.apiErrorCode(error))
       }
     }
+  }
+
+  private static func exceedsAreaCap(_ bbox: String) -> Bool {
+    let parts = bbox.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+    guard parts.count == 4 else { return false }
+    let area = BBoxFormat.shared.areaDeg2(minLon: parts[0], minLat: parts[1], maxLon: parts[2], maxLat: parts[3])
+    return area > BBoxFormat.shared.OFFLINE_AREA_CAP_DEG2
   }
 
   func delete(areaId: String) {
@@ -413,19 +431,65 @@ final class OfflineModel: ObservableObject {
   }
 
   static func isTooLarge(_ code: String?) -> Bool {
-    code == "AREA_TOO_LARGE" || code == "BBOX_INVALID"
+    code == "AREA_TOO_LARGE"
+  }
+
+  static func isInvalidArea(_ code: String?) -> Bool {
+    code == "BBOX_INVALID" || code == "BBOX_OUT_OF_RANGE" ||
+      code == "BBOX_DEGENERATE" || code == "BBOX_REQUIRED"
   }
 
   static func isBusy(_ code: String?) -> Bool {
     code == "BUSY"
   }
 
-  /// Kotlin exceptions surface as NSError with the original throwable in
-  /// userInfo. TODO(macos-ci): verify the "KotlinException" userInfo key
-  /// against the generated framework.
+  /// A Kotlin exception crossing the @Throws boundary arrives as an NSError
+  /// carrying the original throwable under the "KotlinException" userInfo key.
   private static func apiErrorCode(_ error: Error) -> String? {
     let kotlinException = (error as NSError).userInfo["KotlinException"]
     return (kotlinException as? IterApiException)?.code
+  }
+}
+
+// MARK: - Place enrichment
+
+/// Optional Wikimedia enrichment for a selected place. Search results carry no
+/// Wikidata seed, so this tries a title lookup for POI-ish results and stays
+/// quiet on misses — the basic card never waits for it.
+@MainActor
+final class PlaceModel: ObservableObject {
+  @Published private(set) var enriched: Place?
+
+  private let core: IterCore
+  private var task: Task<Void, Never>?
+
+  init(core: IterCore) {
+    self.core = core
+  }
+
+  private static let poiKeys: Set<String> = [
+    "tourism", "historic", "amenity", "leisure", "man_made", "building",
+  ]
+
+  func load(_ place: SearchResult) {
+    task?.cancel()
+    enriched = nil
+    guard let key = place.osmKey, Self.poiKeys.contains(key) else { return }
+    task = Task { [weak self] in
+      guard let self else { return }
+      let lang = Locale.current.language.languageCode?.identifier ?? "en"
+      let result = try? await self.core.places.enrichByTitle(title: place.name, lang: lang)
+      if !Task.isCancelled { self.enriched = result }
+    }
+  }
+
+  func imageURL(for place: Place) -> URL? {
+    core.places.imageUrl(place: place, width: 640).flatMap(URL.init(string:))
+  }
+
+  func clear() {
+    task?.cancel()
+    enriched = nil
   }
 }
 
