@@ -14,7 +14,9 @@ fun haversineMeters(a: GeoPoint, b: GeoPoint): Double {
   val dLon = (b.lon - a.lon).toRadians()
   val sinLat = sin(dLat / 2)
   val sinLon = sin(dLon / 2)
-  val h = sinLat * sinLat + cos(a.lat.toRadians()) * cos(b.lat.toRadians()) * sinLon * sinLon
+  // Clamp: floating-point rounding can push h past 1 near antipodes → NaN.
+  val h = (sinLat * sinLat + cos(a.lat.toRadians()) * cos(b.lat.toRadians()) * sinLon * sinLon)
+    .coerceIn(0.0, 1.0)
   return 2 * EARTH_RADIUS_M * atan2(sqrt(h), sqrt(1 - h))
 }
 

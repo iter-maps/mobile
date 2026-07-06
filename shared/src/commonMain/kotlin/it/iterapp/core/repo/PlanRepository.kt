@@ -43,7 +43,7 @@ class PlanRepository(
 internal fun OtpItinerary.toDomain(): Itinerary = Itinerary(
   startMs = startTime,
   endMs = endTime,
-  durationSeconds = duration,
+  durationSeconds = duration.toLong(),
   numberOfTransfers = numberOfTransfers,
   walkDistanceMeters = walkDistance,
   legs = legs.map { it.toDomain() },
@@ -79,7 +79,7 @@ internal fun OtpLeg.toDomain(): Leg {
     to = toWp,
     startMs = startTime,
     endMs = endTime,
-    durationSeconds = duration,
+    durationSeconds = duration.toLong(),
     distanceMeters = distance,
     isRealTime = realTime,
     arrivalDelaySeconds = arrivalDelay,

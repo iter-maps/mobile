@@ -47,12 +47,10 @@ ever — your copyright stays yours, licensed under the repo's terms.
 
 Code is GPL-3.0-or-later, docs are CC-BY-4.0, declared via `REUSE.toml`. New
 files under existing paths are covered automatically; a new top-level path
-needs a `REUSE.toml` entry. Example inline header where one is warranted:
-
-```kotlin
-// SPDX-FileCopyrightText: 2026 Iter Maps contributors
-// SPDX-License-Identifier: GPL-3.0-or-later
-```
+needs a `REUSE.toml` entry. Where an inline header is warranted, it is the
+usual two comment lines — an `SPDX-FileCopyrightText` line naming
+"Iter Maps contributors" and an `SPDX-License-Identifier` line naming the
+license — exactly as the REUSE specification prescribes.
 
 ## Reporting bugs and security issues
 

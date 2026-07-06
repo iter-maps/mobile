@@ -39,8 +39,9 @@ is on `code`/status, never on `message`.
 
 ## Alternatives considered
 
-- **OpenAPI codegen from `openapi.yaml`** — generated Kotlin is
-  interop-hostile, drags a generator toolchain into the build, and the spec's
-  loose `unknown` types (OTP plan, GeoJSON) need hand-written types anyway.
+- **OpenAPI codegen from a machine-readable spec** — generated Kotlin is
+  interop-hostile, drags a generator toolchain into the build, and the
+  contract's loosest surfaces (OTP plan passthrough, GeoJSON) need
+  hand-written types anyway.
 - **Deserialize directly into domain/UI models** — couples rendering to the
   wire; every UI refactor risks the contract.

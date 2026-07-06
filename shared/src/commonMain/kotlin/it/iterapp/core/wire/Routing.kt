@@ -44,8 +44,8 @@ data class OtpItinerary(
   /** Epoch millis. */
   val startTime: Long = 0,
   val endTime: Long = 0,
-  /** Seconds. */
-  val duration: Long = 0,
+  /** Seconds; OTP may emit a decimal, so this stays Double on the wire. */
+  val duration: Double = 0.0,
   val numberOfTransfers: Int = 0,
   val walkDistance: Double = 0.0,
   val legs: List<OtpLeg> = emptyList(),
@@ -66,8 +66,8 @@ data class OtpLeg(
   /** Epoch millis. */
   val startTime: Long = 0,
   val endTime: Long = 0,
-  /** Seconds. */
-  val duration: Long = 0,
+  /** Seconds; Float in OTP's schema — never assume an integer. */
+  val duration: Double = 0.0,
   /** Metres. */
   val distance: Double = 0.0,
   /** Seconds of live delay when realtime (signed). */
