@@ -41,6 +41,7 @@ fun TrainBoardPage(
   initialQuery: String?,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
+  initialStationId: String? = null,
 ) {
   val query by viewModel.stationQuery.collectAsStateWithLifecycle()
   val stations by viewModel.stationResults.collectAsStateWithLifecycle()
@@ -48,8 +49,14 @@ fun TrainBoardPage(
   val tab by viewModel.tab.collectAsStateWithLifecycle()
   val board by viewModel.board.collectAsStateWithLifecycle()
 
-  LaunchedEffect(initialQuery) {
-    if (!initialQuery.isNullOrBlank() && selected == null) {
+  LaunchedEffect(initialQuery, initialStationId) {
+    if (selected != null) return@LaunchedEffect
+    if (initialStationId != null) {
+      // A station-typed search result already carries the board id.
+      viewModel.selectStation(
+        it.iterapp.core.wire.Station(id = initialStationId, name = initialQuery ?: initialStationId),
+      )
+    } else if (!initialQuery.isNullOrBlank()) {
       viewModel.onQueryChange(initialQuery)
     }
   }

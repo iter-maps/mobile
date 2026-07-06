@@ -25,10 +25,13 @@ data class SearchResult(
   val city: String? = null,
   /** Metres from the query point on reverse lookups. */
   val distanceM: Double? = null,
+  /** ViaggiaTreno station id (`^S\d+$`) when this is a station-typed result — the boards entry point. */
+  val stationId: String? = null,
 ) {
   /** Train stations hop to the live-boards surface. */
   val isTrainStation: Boolean
-    get() = osmKey == "railway" && (osmValue == "station" || osmValue == "halt")
+    get() = stationId != null ||
+      (osmKey == "railway" && (osmValue == "station" || osmValue == "halt"))
 }
 
 enum class LegMode {

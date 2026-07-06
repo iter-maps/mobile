@@ -205,7 +205,7 @@ fun HomeScreen() {
               nav.push(SheetPage.Planning)
             },
             onTrainBoard = { place ->
-              nav.push(SheetPage.TrainBoard(place.name))
+              nav.push(SheetPage.TrainBoard(place.name, place.stationId))
             },
           )
 
@@ -243,6 +243,7 @@ fun HomeScreen() {
           is SheetPage.TrainBoard -> TrainBoardPage(
             viewModel = trainsViewModel,
             initialQuery = current.stationQuery,
+            initialStationId = current.stationId,
             onBack = {
               trainsViewModel.reset()
               nav.pop()

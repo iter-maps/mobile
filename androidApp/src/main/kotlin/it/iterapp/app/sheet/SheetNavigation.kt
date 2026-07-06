@@ -43,7 +43,11 @@ sealed interface SheetPage {
     override val openAnchor = SheetAnchor.Full
   }
 
-  data class TrainBoard(val stationQuery: String? = null) : SheetPage {
+  data class TrainBoard(
+    val stationQuery: String? = null,
+    /** Preselects the board directly when a `^S\d+$` id is already known. */
+    val stationId: String? = null,
+  ) : SheetPage {
     override val openAnchor = SheetAnchor.Full
   }
 

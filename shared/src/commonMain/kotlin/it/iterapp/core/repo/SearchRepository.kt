@@ -51,8 +51,12 @@ internal fun PhotonFeature.toResult(): SearchResult? {
   }.distinct().joinToString(", ").ifBlank { null }
   val id = when {
     p.osm_type != null && p.osm_id != null -> "osm:${p.osm_type}${p.osm_id}"
+    p.osm_id != null -> "id:${p.osm_id}"
     else -> "pt:${coords[1]},${coords[0]}"
   }
+  // A station-typed result carries the ViaggiaTreno id the boards need.
+  val stationId = p.osm_id
+    ?.takeIf { p.type == "station" && STATION_ID.matches(it) }
   return SearchResult(
     id = id,
     name = name,
@@ -65,5 +69,8 @@ internal fun PhotonFeature.toResult(): SearchResult? {
     housenumber = p.housenumber,
     city = p.city,
     distanceM = p.distance,
+    stationId = stationId,
   )
 }
+
+private val STATION_ID = Regex("^S\\d+$")

@@ -104,6 +104,42 @@ class IterGatewayClientTest {
   }
 
   @Test
+  fun geocodeToleratesSyntheticStringIds() = runTest {
+    // Gateway-injected civici carry `ov…` string ids; stations carry `S\d+`.
+    val engine = MockEngine {
+      respond(
+        """{"type":"FeatureCollection","features":[
+             {"type":"Feature","geometry":{"type":"Point","coordinates":[12.5,41.9]},
+              "properties":{"osm_id":"ov4f2a","osm_key":"place","osm_value":"house",
+                            "type":"house","street":"Via Roma","housenumber":"12","city":"Roma"}},
+             {"type":"Feature","geometry":{"type":"Point","coordinates":[12.501,41.901]},
+              "properties":{"osm_id":"S08409","type":"station","name":"Roma Termini"}},
+             {"type":"Feature","geometry":{"type":"Point","coordinates":[12.502,41.902]},
+              "properties":{"osm_id":123456789,"osm_type":"N","type":"other","name":"Bar"}}]}""",
+        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+      )
+    }
+    val results = SearchRepository(clientWith(engine)).search("via roma 12")
+    assertEquals(3, results.size)
+    assertEquals("Via Roma 12", results[0].name)
+    assertNull(results[0].stationId)
+    assertEquals("S08409", results[1].stationId)
+    assertTrue(results[1].isTrainStation)
+    assertEquals("osm:N123456789", results[2].id)
+  }
+
+  @Test
+  fun placeImageUrlUsesQueryParameterEncoding() = runTest {
+    val engine = MockEngine { respond("") }
+    val client = clientWith(engine)
+    val url = client.placeImageUrl("AT&T logo+more=x.svg")
+    assertEquals(
+      "http://gw.test/places/image?file=AT%26T%20logo%2Bmore%3Dx.svg&width=640",
+      url,
+    )
+  }
+
+  @Test
   fun reliabilityEncodesPathSegments() = runTest {
     val engine = MockEngine { request ->
       assertEquals("/reliability/70/0/70001", request.url.encodedPath)
@@ -163,6 +199,28 @@ class PlanRepositoryTest {
     assertEquals("E27439", bus.routeColor)
     assertEquals(180.0, bus.predictedDelay?.p85Seconds)
     assertEquals(2, bus.geometry.size)
+  }
+
+  @Test
+  fun planToleratesDecimalDurations() = runTest {
+    // OTP's Leg.duration is a Float — decimal seconds must decode.
+    val engine = MockEngine {
+      respond(
+        """{"data":{"plan":{"itineraries":[
+             {"startTime":1,"endTime":2,"duration":1980.0,"numberOfTransfers":0,
+              "walkDistance":10.5,
+              "legs":[{"mode":"WALK","transitLeg":false,"startTime":1,"endTime":2,
+                       "duration":300.5,"distance":400.0,
+                       "from":{"name":"A","lat":1.0,"lon":1.0},
+                       "to":{"name":"B","lat":1.1,"lon":1.1}}]}]}}}""",
+        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+      )
+    }
+    val itineraries = PlanRepository(clientWith(engine)).plan(
+      PlanParams(fromLat = 1.0, fromLon = 1.0, toLat = 1.1, toLon = 1.1),
+    )
+    assertEquals(1980, itineraries[0].durationSeconds)
+    assertEquals(300, itineraries[0].legs[0].durationSeconds)
   }
 
   @Test
