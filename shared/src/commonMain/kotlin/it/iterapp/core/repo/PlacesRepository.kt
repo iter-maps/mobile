@@ -11,14 +11,17 @@ class PlacesRepository(
 ) {
 
   /** Null when the place has no article/coordinates (contract 404s). */
+  @Throws(Exception::class)
   suspend fun enrichByWikidata(qid: String, lang: String? = null): Place? = swallow404 {
     client.enrichByWikidata(qid, lang)
   }
 
+  @Throws(Exception::class)
   suspend fun enrichByWikipedia(langTitle: String, lang: String? = null): Place? = swallow404 {
     client.enrichByWikipedia(langTitle, lang)
   }
 
+  @Throws(Exception::class)
   suspend fun enrichByTitle(title: String, lang: String): Place? = swallow404 {
     client.enrichByTitle(title, lang)
   }
@@ -35,6 +38,7 @@ class PlacesRepository(
     }
   }
 
+  @Throws(Exception::class)
   suspend fun related(
     street: String?,
     housenumber: String?,
@@ -45,6 +49,7 @@ class PlacesRepository(
     client.relatedPlaces(street, housenumber, city, brand = null, lat = lat, lon = lon).related
 
   /** Null when the destination has no guide. */
+  @Throws(Exception::class)
   suspend fun collections(dest: String, lang: String? = null, kinds: List<String> = emptyList()): Collections? =
     swallow404 { client.collections(dest, lang, kinds) }
 

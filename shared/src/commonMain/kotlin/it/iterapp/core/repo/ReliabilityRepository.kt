@@ -10,6 +10,7 @@ class ReliabilityRepository(
 ) {
 
   /** Ids are passed verbatim; empty `cells` means "no history yet". */
+  @Throws(Exception::class)
   suspend fun forStop(route: String, direction: String, stop: String): ReliabilityResponse =
     client.reliability(route, direction, stop)
 
@@ -19,6 +20,7 @@ class ReliabilityRepository(
    * `FEED:id` values are stripped here; absent direction defaults to 0 like
    * everywhere else in the stack.
    */
+  @Throws(Exception::class)
   suspend fun forLeg(leg: Leg): ReliabilityResponse? {
     val route = leg.routeGtfsId ?: return null
     val stop = leg.from.stopGtfsId ?: return null

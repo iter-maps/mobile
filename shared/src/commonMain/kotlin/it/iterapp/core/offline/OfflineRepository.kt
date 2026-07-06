@@ -35,6 +35,7 @@ class OfflineRepository(
    * Downloads a bundle for [bbox] (`minLon,minLat,maxLon,maxLat`) and
    * installs it as [areaId]. Progress is (bytesRead, totalOrNull).
    */
+  @Throws(Exception::class)
   suspend fun install(
     areaId: String,
     bbox: String,

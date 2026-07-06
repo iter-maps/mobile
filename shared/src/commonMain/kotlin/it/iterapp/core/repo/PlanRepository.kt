@@ -26,6 +26,7 @@ class PlanRepository(
    * annotation. GraphQL-level errors surface as [IterApiException] with code
    * `GRAPHQL_ERROR`.
    */
+  @Throws(Exception::class)
   suspend fun plan(
     params: PlanParams,
     rerank: String? = null,

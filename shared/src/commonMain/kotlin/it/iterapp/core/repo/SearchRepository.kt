@@ -9,6 +9,7 @@ class SearchRepository(
   private val client: IterGatewayClient,
 ) {
 
+  @Throws(Exception::class)
   suspend fun search(
     query: String,
     lang: String? = null,
@@ -24,6 +25,7 @@ class SearchRepository(
       biasScale = if (bias != null) DEFAULT_BIAS_SCALE else null,
     ).features.mapNotNull { it.toResult() }
 
+  @Throws(Exception::class)
   suspend fun reverse(point: GeoPoint, lang: String? = null): SearchResult? =
     client.reverse(point.lat, point.lon, lang = lang, limit = 1)
       .features.firstOrNull()?.toResult()
