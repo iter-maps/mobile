@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Iter</string>
+
+  <!-- Generic -->
+  <string name="action_back">Indietro</string>
+  <string name="action_close">Chiudi</string>
+  <string name="action_retry">Riprova</string>
+  <string name="action_cancel">Annulla</string>
+  <string name="action_delete">Elimina</string>
+  <string name="action_search">Cerca</string>
+  <string name="action_clear">Cancella</string>
+  <string name="state_loading">Caricamento…</string>
+  <string name="error_network">Server non raggiungibile</string>
+  <string name="error_generic">Qualcosa è andato storto</string>
+  <string name="empty_results">Nessun risultato</string>
+
+  <!-- Home sheet -->
+  <string name="home_search_hint">Cerca luoghi e indirizzi</string>
+  <string name="home_quick_planning">Indicazioni</string>
+  <string name="home_quick_boards">Treni</string>
+  <string name="home_quick_offline">Offline</string>
+  <string name="home_quick_settings">Impostazioni</string>
+
+  <!-- Search -->
+  <string name="search_placeholder">Cerca luoghi e indirizzi</string>
+  <string name="search_no_results">Nessun risultato</string>
+
+  <!-- Place detail -->
+  <string name="place_directions">Indicazioni</string>
+  <string name="place_train_board">Tabellone treni</string>
+  <string name="place_website">Sito web</string>
+  <string name="place_phone">Telefono</string>
+  <string name="place_hours">Orari</string>
+  <string name="place_wheelchair">Accessibilità</string>
+  <string name="place_photo_attribution">Foto: %1$s</string>
+
+  <!-- Planning -->
+  <string name="planning_title">Indicazioni</string>
+  <string name="planning_from">Da</string>
+  <string name="planning_to">A</string>
+  <string name="planning_swap">Scambia partenza e arrivo</string>
+  <string name="planning_my_location">La mia posizione</string>
+  <string name="planning_choose_on_search">Cerca un indirizzo</string>
+  <string name="planning_now">Parti ora</string>
+  <string name="planning_profile_label">Ordina per</string>
+  <string name="planning_profile_default">Più veloce</string>
+  <string name="planning_profile_reliability">Affidabile</string>
+  <string name="planning_profile_balanced">Bilanciato</string>
+  <string name="planning_profile_eco">Eco</string>
+  <string name="planning_profile_comfort">Comfort</string>
+  <string name="planning_transfers">%1$d cambi</string>
+  <string name="planning_transfers_one">1 cambio</string>
+  <string name="planning_transfers_none">Diretto</string>
+  <string name="planning_walk_distance">%1$s a piedi</string>
+  <string name="planning_no_results">Nessun percorso trovato</string>
+  <string name="planning_detail_title">Dettaglio percorso</string>
+  <string name="planning_usually_delayed">Di solito +%1$s qui</string>
+  <string name="planning_reliability_high">Di solito puntuale</string>
+  <string name="planning_reliability_low">Spesso in ritardo</string>
+  <string name="planning_duration_min">%1$d min</string>
+  <string name="planning_stops_count">%1$d fermate</string>
+  <string name="planning_arrive_by">Arriva entro</string>
+  <string name="planning_depart_at">Parti alle</string>
+
+  <!-- Train boards -->
+  <string name="trains_title">Tabellone treni</string>
+  <string name="trains_search_hint">Cerca una stazione</string>
+  <string name="trains_departures">Partenze</string>
+  <string name="trains_arrivals">Arrivi</string>
+  <string name="trains_platform">Bin. %1$s</string>
+  <string name="trains_delay_min">+%1$d min</string>
+  <string name="trains_early_min">−%1$d min</string>
+  <string name="trains_on_time">In orario</string>
+  <string name="trains_empty">Nessun treno al momento</string>
+
+  <!-- Offline -->
+  <string name="offline_title">Mappe offline</string>
+  <string name="offline_download_current">Scarica l\'area corrente</string>
+  <string name="offline_downloading">Download… %1$s</string>
+  <string name="offline_installing">Installazione…</string>
+  <string name="offline_empty">Nessuna area offline</string>
+  <string name="offline_error_too_large">Area troppo grande — avvicina lo zoom e riprova</string>
+  <string name="offline_error_busy">Server occupato — riprova tra poco</string>
+  <string name="offline_area_zoom">fino a zoom %1$d</string>
+  <string name="offline_downloaded_on">Scaricata il %1$s</string>
+
+  <!-- Settings -->
+  <string name="settings_title">Impostazioni</string>
+  <string name="settings_theme">Tema</string>
+  <string name="settings_theme_system">Sistema</string>
+  <string name="settings_theme_light">Chiaro</string>
+  <string name="settings_theme_dark">Scuro</string>
+  <string name="settings_dynamic_color">Colori Material You</string>
+  <string name="settings_dynamic_color_desc">Colora l\'app dal tuo sfondo</string>
+  <string name="settings_map_style">Stile mappa</string>
+  <string name="settings_map_standard">Classica</string>
+  <string name="settings_map_transit">Trasporti</string>
+  <string name="settings_server">Server</string>
+  <string name="settings_server_origin">Indirizzo del gateway</string>
+  <string name="settings_server_desc">Il server Iter Maps usato dall\'app</string>
+  <string name="settings_server_save">Applica</string>
+
+  <!-- Map layers -->
+  <string name="layers_title">Stile mappa</string>
+
+  <!-- Map controls -->
+  <string name="map_recenter">Ricentra</string>
+  <string name="map_compass">Punta a nord</string>
+  <string name="map_my_location">La mia posizione</string>
+</resources>

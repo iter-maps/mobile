@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="108"
+  android:viewportHeight="108">
+  <!-- "it" monogram: dot + stem of the i, and a t whose bar doubles as a route line -->
+  <group>
+    <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M40,44 h8 v26 h-8 z" />
+    <path
+      android:fillColor="#B9BDFF"
+      android:pathData="M44,31 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" />
+    <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M58,38 h8 v32 h-8 z" />
+    <path
+      android:fillColor="#B9BDFF"
+      android:pathData="M52,48 h20 v7 h-20 z" />
+  </group>
+</vector>

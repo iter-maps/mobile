@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Iter</string>
+
+  <!-- Generic -->
+  <string name="action_back">Back</string>
+  <string name="action_close">Close</string>
+  <string name="action_retry">Retry</string>
+  <string name="action_cancel">Cancel</string>
+  <string name="action_delete">Delete</string>
+  <string name="action_search">Search</string>
+  <string name="action_clear">Clear</string>
+  <string name="state_loading">Loading…</string>
+  <string name="error_network">Can\'t reach the server</string>
+  <string name="error_generic">Something went wrong</string>
+  <string name="empty_results">No results</string>
+
+  <!-- Home sheet -->
+  <string name="home_search_hint">Search places and addresses</string>
+  <string name="home_quick_planning">Directions</string>
+  <string name="home_quick_boards">Trains</string>
+  <string name="home_quick_offline">Offline</string>
+  <string name="home_quick_settings">Settings</string>
+
+  <!-- Search -->
+  <string name="search_placeholder">Search places and addresses</string>
+  <string name="search_no_results">Nothing found</string>
+
+  <!-- Place detail -->
+  <string name="place_directions">Directions</string>
+  <string name="place_train_board">Train board</string>
+  <string name="place_website">Website</string>
+  <string name="place_phone">Phone</string>
+  <string name="place_hours">Hours</string>
+  <string name="place_wheelchair">Wheelchair access</string>
+  <string name="place_photo_attribution">Photo: %1$s</string>
+
+  <!-- Planning -->
+  <string name="planning_title">Directions</string>
+  <string name="planning_from">From</string>
+  <string name="planning_to">To</string>
+  <string name="planning_swap">Swap origin and destination</string>
+  <string name="planning_my_location">My location</string>
+  <string name="planning_choose_on_search">Search an address</string>
+  <string name="planning_now">Leave now</string>
+  <string name="planning_profile_label">Rank by</string>
+  <string name="planning_profile_default">Fastest</string>
+  <string name="planning_profile_reliability">Reliable</string>
+  <string name="planning_profile_balanced">Balanced</string>
+  <string name="planning_profile_eco">Eco</string>
+  <string name="planning_profile_comfort">Comfort</string>
+  <string name="planning_transfers">%1$d transfers</string>
+  <string name="planning_transfers_one">1 transfer</string>
+  <string name="planning_transfers_none">Direct</string>
+  <string name="planning_walk_distance">%1$s walk</string>
+  <string name="planning_no_results">No routes found</string>
+  <string name="planning_detail_title">Route detail</string>
+  <string name="planning_usually_delayed">Usually +%1$s here</string>
+  <string name="planning_reliability_high">Usually on time</string>
+  <string name="planning_reliability_low">Often delayed</string>
+  <string name="planning_duration_min">%1$d min</string>
+  <string name="planning_stops_count">%1$d stops</string>
+  <string name="planning_arrive_by">Arrive by</string>
+  <string name="planning_depart_at">Depart at</string>
+
+  <!-- Train boards -->
+  <string name="trains_title">Train boards</string>
+  <string name="trains_search_hint">Search a station</string>
+  <string name="trains_departures">Departures</string>
+  <string name="trains_arrivals">Arrivals</string>
+  <string name="trains_platform">Plat. %1$s</string>
+  <string name="trains_delay_min">+%1$d min</string>
+  <string name="trains_early_min">−%1$d min</string>
+  <string name="trains_on_time">On time</string>
+  <string name="trains_empty">No trains right now</string>
+
+  <!-- Offline -->
+  <string name="offline_title">Offline maps</string>
+  <string name="offline_download_current">Download current area</string>
+  <string name="offline_downloading">Downloading… %1$s</string>
+  <string name="offline_installing">Installing…</string>
+  <string name="offline_empty">No offline areas yet</string>
+  <string name="offline_error_too_large">Area too large — zoom in and retry</string>
+  <string name="offline_error_busy">Server busy — try again in a moment</string>
+  <string name="offline_area_zoom">up to zoom %1$d</string>
+  <string name="offline_downloaded_on">Downloaded %1$s</string>
+
+  <!-- Settings -->
+  <string name="settings_title">Settings</string>
+  <string name="settings_theme">Theme</string>
+  <string name="settings_theme_system">System</string>
+  <string name="settings_theme_light">Light</string>
+  <string name="settings_theme_dark">Dark</string>
+  <string name="settings_dynamic_color">Material You colors</string>
+  <string name="settings_dynamic_color_desc">Tint the app from your wallpaper</string>
+  <string name="settings_map_style">Map style</string>
+  <string name="settings_map_standard">Standard</string>
+  <string name="settings_map_transit">Transit</string>
+  <string name="settings_server">Server</string>
+  <string name="settings_server_origin">Gateway address</string>
+  <string name="settings_server_desc">The Iter Maps server this app talks to</string>
+  <string name="settings_server_save">Apply</string>
+
+  <!-- Map layers -->
+  <string name="layers_title">Map style</string>
+
+  <!-- Map controls -->
+  <string name="map_recenter">Re-center</string>
+  <string name="map_compass">Point north</string>
+  <string name="map_my_location">My position</string>
+</resources>
