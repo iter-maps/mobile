@@ -31,12 +31,16 @@ class LocationProvider(private val context: Context) {
       ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
       PackageManager.PERMISSION_GRANTED
 
-  private fun bestProvider(lm: LocationManager): String? = when {
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-      lm.allProviders.contains(LocationManager.FUSED_PROVIDER) -> LocationManager.FUSED_PROVIDER
-    lm.allProviders.contains(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-    lm.allProviders.contains(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-    else -> null
+  // All providers worth listening to: fused alone can sit silent (notably on
+  // emulators), so gps/network run alongside and the freshest fix wins.
+  private fun viableProviders(lm: LocationManager): List<String> = buildList {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+      lm.allProviders.contains(LocationManager.FUSED_PROVIDER)
+    ) {
+      add(LocationManager.FUSED_PROVIDER)
+    }
+    if (lm.allProviders.contains(LocationManager.GPS_PROVIDER)) add(LocationManager.GPS_PROVIDER)
+    if (lm.allProviders.contains(LocationManager.NETWORK_PROVIDER)) add(LocationManager.NETWORK_PROVIDER)
   }
 
   fun lastKnown(): GeoPoint? {
@@ -62,7 +66,11 @@ class LocationProvider(private val context: Context) {
       return@callbackFlow
     }
     val lm = manager ?: run { close(); return@callbackFlow }
-    val provider = bestProvider(lm) ?: run { close(); return@callbackFlow }
+    val providers = viableProviders(lm)
+    if (providers.isEmpty()) {
+      close()
+      return@callbackFlow
+    }
     lastKnown()?.let { trySend(it) }
     val listener = LocationListenerCompat { location ->
       trySend(GeoPoint(location.latitude, location.longitude))
@@ -71,11 +79,19 @@ class LocationProvider(private val context: Context) {
       .setQuality(LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
       .setMinUpdateDistanceMeters(5f)
       .build()
-    try {
-      LocationManagerCompat.requestLocationUpdates(
-        lm, provider, request, ContextCompat.getMainExecutor(context), listener,
-      )
-    } catch (_: SecurityException) {
+    val registered = providers.filter { provider ->
+      try {
+        LocationManagerCompat.requestLocationUpdates(
+          lm, provider, request, ContextCompat.getMainExecutor(context), listener,
+        )
+        true
+      } catch (_: SecurityException) {
+        false
+      } catch (_: IllegalArgumentException) {
+        false
+      }
+    }
+    if (registered.isEmpty()) {
       close()
       return@callbackFlow
     }

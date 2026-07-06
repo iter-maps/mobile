@@ -23,6 +23,10 @@ class TrainsRepository(
     return client.searchStations(query.trim())
   }
 
+  /** Full station list (coordinates included where upstream has them). */
+  @Throws(Exception::class)
+  suspend fun stations(): List<Station> = client.stations()
+
   @Throws(Exception::class)
   suspend fun departures(stationId: String): List<BoardEntry> = client.departures(stationId)
 

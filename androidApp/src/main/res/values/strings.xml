@@ -16,11 +16,15 @@
   <string name="empty_results">No results</string>
 
   <!-- Home sheet -->
-  <string name="home_search_hint">Search places and addresses</string>
+  <string name="home_search_hint">Where to?</string>
   <string name="home_quick_planning">Directions</string>
   <string name="home_quick_boards">Trains</string>
   <string name="home_quick_offline">Offline</string>
   <string name="home_quick_settings">Settings</string>
+  <string name="home_profile_cd">Settings</string>
+  <string name="home_section_recents">Recent</string>
+  <string name="home_section_nearby">Nearby stations</string>
+  <string name="home_nearby_empty">Turn on location to see stations around you</string>
 
   <!-- Search -->
   <string name="search_placeholder">Search places and addresses</string>

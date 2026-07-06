@@ -16,11 +16,15 @@
   <string name="empty_results">Nessun risultato</string>
 
   <!-- Home sheet -->
-  <string name="home_search_hint">Cerca luoghi e indirizzi</string>
+  <string name="home_search_hint">Dove andiamo?</string>
   <string name="home_quick_planning">Indicazioni</string>
   <string name="home_quick_boards">Treni</string>
   <string name="home_quick_offline">Offline</string>
   <string name="home_quick_settings">Impostazioni</string>
+  <string name="home_profile_cd">Impostazioni</string>
+  <string name="home_section_recents">Recenti</string>
+  <string name="home_section_nearby">Stazioni vicine</string>
+  <string name="home_nearby_empty">Attiva la posizione per vedere le stazioni intorno a te</string>
 
   <!-- Search -->
   <string name="search_placeholder">Cerca luoghi e indirizzi</string>
