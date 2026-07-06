@@ -28,8 +28,10 @@ Glass** on iOS. "Decision" pointers below name the relevant ADRs by number
 - **Live train boards** ✅ done — station autocomplete + departures/arrivals
   polling at the contract's cadence. **Remaining:** favorite stations; board →
   plan hand-off ([`live-boards-alerts.md`](live-boards-alerts.md)).
-- **Offline maps** — bundle download and unpack are in the shared core;
-  management UI and automatic style fallback are in progress
+- **Offline maps** ✅ done — bundle download, atomic unpack, and area
+  management UI (download the viewport, list, delete) ship on both shells.
+  **Remaining:** automatic offline style fallback when the gateway is
+  unreachable; freshness re-download via `/manifest` etags
   ([`offline-maps.md`](offline-maps.md)).
 - **Turn-by-turn guidance** — not started
   ([`turn-by-turn-navigation.md`](turn-by-turn-navigation.md)).
@@ -42,9 +44,12 @@ Glass** on iOS. "Decision" pointers below name the relevant ADRs by number
   bottom sheet over a persistent map, dynamic color with semantic transit
   tokens. **Remaining:** onboarding flow; tablet/large-screen layouts;
   accessibility pass.
-- **iOS (SwiftUI, Liquid Glass)** — in progress (ADR 0002, 0009, 0010):
-  project generation, shared-framework wiring and the sheet shell exist; the
-  feature pages track Android ([`ios-parity.md`](ios-parity.md)).
+- **iOS (SwiftUI, Liquid Glass)** ✅ core done (ADR 0002, 0009, 0010) —
+  project generation, shared-framework wiring, and the full page set (home,
+  search, place detail with enrichment, planning, boards, offline, settings)
+  are built; Swift compiles only on the CI macOS lane.
+  **Remaining:** onboarding, Live Activities, visual polish
+  ([`ios-parity.md`](ios-parity.md)).
 - **Localization** — Italian and English strings only; framework for more
   pending ([`localization.md`](localization.md)).
 - **Release hardening** — signing, store packaging, migration policy, CI

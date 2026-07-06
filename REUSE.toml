@@ -7,6 +7,9 @@ version = 1
 # licensing for files that do not carry an inline SPDX header.
 
 # --- Code: strong copyleft (GPL-3.0-or-later) -------------------------------
+# The Gradle wrapper scripts carry their own inline Apache-2.0 headers and the
+# wrapper jar/properties are Gradle's Apache-2.0 (declared below), so neither is
+# swept in here.
 [[annotations]]
 path = [
   "shared/**",
@@ -15,14 +18,21 @@ path = [
   "build.gradle.kts",
   "settings.gradle.kts",
   "gradle.properties",
-  "gradle/**",
-  "gradlew",
-  "gradlew.bat",
+  "gradle/libs.versions.toml",
   ".gitignore",
   ".github/**",
 ]
 SPDX-FileCopyrightText = "Iter Maps contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# --- Gradle wrapper: upstream Apache-2.0 ------------------------------------
+[[annotations]]
+path = [
+  "gradle/wrapper/gradle-wrapper.jar",
+  "gradle/wrapper/gradle-wrapper.properties",
+]
+SPDX-FileCopyrightText = "Gradle, Inc."
+SPDX-License-Identifier = "Apache-2.0"
 
 # --- Docs & governance: CC-BY-4.0 -------------------------------------------
 [[annotations]]
