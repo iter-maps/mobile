@@ -1,5 +1,6 @@
 package it.iterapp.app.map
 
+import android.graphics.PointF
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -11,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -72,6 +74,13 @@ class MapCameraController {
   var bearing by mutableStateOf(0.0)
     internal set
 
+  // Surface geometry and the sheet inset, needed to project the band the user
+  // actually sees (the map view is GPU-translated up by insetPx/2, invisibly
+  // to MapLibre's projection).
+  internal var surfaceWidth = 0
+  internal var surfaceHeight = 0
+  internal var insetPx = 0
+
   fun animateTo(point: GeoPoint, zoom: Double = 15.5) {
     userMovedCamera = false
     run { map ->
@@ -90,7 +99,13 @@ class MapCameraController {
       val bounds = LatLngBounds.Builder().apply {
         points.forEach { include(LatLng(it.lat, it.lon)) }
       }.build()
-      map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, paddingPx), 900)
+      // Extra bottom padding keeps the fitted route clear of the sheet.
+      map.animateCamera(
+        CameraUpdateFactory.newLatLngBounds(
+          bounds, paddingPx, paddingPx, paddingPx, paddingPx + insetPx,
+        ),
+        900,
+      )
     }
   }
 
@@ -98,10 +113,36 @@ class MapCameraController {
     run { it.animateCamera(CameraUpdateFactory.bearingTo(0.0), 500) }
   }
 
-  /** The current viewport as a bbox wire string, or null before readiness. */
+  /**
+   * The bbox of the map band the user actually sees (`minLon,minLat,maxLon,
+   * maxLat`), excluding the area behind the sheet. Falls back to the full
+   * visible region before the surface is measured. Null before readiness.
+   */
   fun viewportBBox(): String? {
-    val bounds = map?.projection?.visibleRegion?.latLngBounds ?: return null
-    return "${bounds.longitudeWest},${bounds.latitudeSouth},${bounds.longitudeEast},${bounds.latitudeNorth}"
+    val m = map ?: return null
+    if (surfaceWidth == 0 || surfaceHeight == 0) {
+      val bounds = m.projection.visibleRegion.latLngBounds
+      return "${bounds.longitudeWest},${bounds.latitudeSouth}," +
+        "${bounds.longitudeEast},${bounds.latitudeNorth}"
+    }
+    val proj = m.projection
+    val shift = insetPx / 2f
+    // Uncovered band: screen-top to (height - sheet coverage), mapped into the
+    // untranslated view space MapLibre projects from.
+    val bandBottom = (surfaceHeight - insetPx).toFloat().coerceAtLeast(surfaceHeight * 0.3f)
+    val w = surfaceWidth.toFloat()
+    val corners = listOf(
+      PointF(0f, shift),
+      PointF(w, shift),
+      PointF(0f, bandBottom + shift),
+      PointF(w, bandBottom + shift),
+    ).map { proj.fromScreenLocation(it) }
+    val minLon = corners.minOf { it.longitude }
+    val maxLon = corners.maxOf { it.longitude }
+    val minLat = corners.minOf { it.latitude }
+    val maxLat = corners.maxOf { it.latitude }
+    if (minLon >= maxLon || minLat >= maxLat) return null
+    return "$minLon,$minLat,$maxLon,$maxLat"
   }
 
   private fun run(block: (MapLibreMap) -> Unit) {
@@ -134,6 +175,7 @@ fun IterMapView(
   var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
   val currentInset = remember { mutableIntStateOf(insetPx) }
   currentInset.intValue = insetPx
+  controller.insetPx = insetPx
 
   val mapView = remember {
     // TextureView so the graphicsLayer translation composites on the GPU.
@@ -164,7 +206,12 @@ fun IterMapView(
   }
 
   AndroidView(
-    modifier = modifier.graphicsLayer { translationY = -currentInset.intValue / 2f },
+    modifier = modifier
+      .graphicsLayer { translationY = -currentInset.intValue / 2f }
+      .onSizeChanged {
+        controller.surfaceWidth = it.width
+        controller.surfaceHeight = it.height
+      },
     factory = { mapView },
   )
 
