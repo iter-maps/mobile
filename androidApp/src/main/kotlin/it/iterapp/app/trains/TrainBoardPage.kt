@@ -50,13 +50,15 @@ fun TrainBoardPage(
   val board by viewModel.board.collectAsStateWithLifecycle()
 
   LaunchedEffect(initialQuery, initialStationId) {
-    if (selected != null) return@LaunchedEffect
     if (initialStationId != null) {
-      // A station-typed search result already carries the board id.
-      viewModel.selectStation(
-        it.iterapp.core.wire.Station(id = initialStationId, name = initialQuery ?: initialStationId),
-      )
-    } else if (!initialQuery.isNullOrBlank()) {
+      // A station-typed search result already carries the board id; switch to
+      // it even if a different station was previously selected.
+      if (selected?.id != initialStationId) {
+        viewModel.selectStation(
+          it.iterapp.core.wire.Station(id = initialStationId, name = initialQuery ?: initialStationId),
+        )
+      }
+    } else if (selected == null && !initialQuery.isNullOrBlank()) {
       viewModel.onQueryChange(initialQuery)
     }
   }

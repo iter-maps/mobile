@@ -58,13 +58,17 @@ class PlanningViewModel(
 
   private var planJob: Job? = null
 
-  /** Entry point from a place page: destination set, origin = user location. */
+  /**
+   * Entry point from a place page: destination set, origin = user location.
+   * The origin is reset to the user's location unless they had explicitly
+   * picked one this session, so tapping Directions on a new place never plans
+   * from a previous trip's stale origin.
+   */
   fun directionsTo(place: SearchResult) {
     to.value = PlanEndpoint(place.name, place.point)
-    if (from.value == null) {
-      locationProvider.lastKnown()?.let {
-        from.value = PlanEndpoint("", it, isUserLocation = true)
-      }
+    if (from.value?.isUserLocation != false) {
+      from.value = locationProvider.lastKnown()
+        ?.let { PlanEndpoint("", it, isUserLocation = true) }
     }
     replan()
   }

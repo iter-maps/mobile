@@ -101,7 +101,25 @@ fun HomeScreen() {
     )
   }
 
-  BackHandler(enabled = nav.canPop) { nav.pop() }
+  // System/gesture back must run the same per-page teardown as the in-sheet
+  // arrows, or the shared ViewModels keep stale state (and the map keeps stale
+  // overlays) on re-entry. Both paths funnel through popCurrent().
+  fun popCurrent() {
+    when (nav.current) {
+      SheetPage.Search -> searchViewModel.reset()
+      is SheetPage.PlaceDetail -> {
+        homeViewModel.select(null)
+        placeViewModel.clear()
+      }
+      SheetPage.Planning -> planningViewModel.reset()
+      is SheetPage.PlanningPicker -> searchViewModel.reset()
+      is SheetPage.TrainBoard -> trainsViewModel.reset()
+      else -> {}
+    }
+    nav.pop()
+  }
+
+  BackHandler(enabled = nav.canPop) { popCurrent() }
 
   // Camera follows selections: place at half-sheet zoom, itinerary fitted.
   LaunchedEffect(selectedPlace) {
@@ -189,10 +207,7 @@ fun HomeScreen() {
 
           SheetPage.Search -> SearchPage(
             viewModel = searchViewModel,
-            onBack = {
-              searchViewModel.reset()
-              nav.pop()
-            },
+            onBack = { popCurrent() },
             onPick = { result ->
               homeViewModel.select(result)
               searchViewModel.reset()
@@ -203,11 +218,7 @@ fun HomeScreen() {
           is SheetPage.PlaceDetail -> PlaceDetailPage(
             place = current.place,
             viewModel = placeViewModel,
-            onBack = {
-              homeViewModel.select(null)
-              placeViewModel.clear()
-              nav.pop()
-            },
+            onBack = { popCurrent() },
             onDirections = { place ->
               planningViewModel.directionsTo(place)
               nav.push(SheetPage.Planning)
@@ -219,25 +230,19 @@ fun HomeScreen() {
 
           SheetPage.Planning -> PlanningPage(
             viewModel = planningViewModel,
-            onBack = {
-              planningViewModel.reset()
-              nav.pop()
-            },
+            onBack = { popCurrent() },
             onPickEndpoint = { fromField -> nav.push(SheetPage.PlanningPicker(fromField)) },
             onOpenDetail = { nav.push(SheetPage.PlanningDetail) },
           )
 
           SheetPage.PlanningDetail -> PlanningDetailPage(
             viewModel = planningViewModel,
-            onBack = { nav.pop() },
+            onBack = { popCurrent() },
           )
 
           is SheetPage.PlanningPicker -> SearchPage(
             viewModel = searchViewModel,
-            onBack = {
-              searchViewModel.reset()
-              nav.pop()
-            },
+            onBack = { popCurrent() },
             onPick = { result ->
               planningViewModel.setEndpoint(
                 current.from,
@@ -252,10 +257,7 @@ fun HomeScreen() {
             viewModel = trainsViewModel,
             initialQuery = current.stationQuery,
             initialStationId = current.stationId,
-            onBack = {
-              trainsViewModel.reset()
-              nav.pop()
-            },
+            onBack = { popCurrent() },
           )
 
           SheetPage.MapLayers -> MapLayersPage(
@@ -270,12 +272,12 @@ fun HomeScreen() {
           SheetPage.Offline -> OfflinePage(
             viewModel = offlineViewModel,
             currentViewportBBox = { camera.viewportBBox() },
-            onBack = { nav.pop() },
+            onBack = { popCurrent() },
           )
 
           SheetPage.Settings -> SettingsPage(
             viewModel = settingsViewModel,
-            onBack = { nav.pop() },
+            onBack = { popCurrent() },
           )
         }
       }
