@@ -27,3 +27,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "iter-mobile"
+
+include(":shared")
