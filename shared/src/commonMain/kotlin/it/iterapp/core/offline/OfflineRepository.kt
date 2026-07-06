@@ -43,29 +43,46 @@ class OfflineRepository(
   ): OfflineArea {
     fileSystem.createDirectories(rootDir)
     val zipPath = rootDir / "$areaId.zip.part"
-    fileSystem.sink(zipPath).buffer().use { sink ->
-      client.downloadOfflineBundle(bbox = bbox, maxzoom = maxzoom, sink = sink, onProgress = onProgress)
-    }
+    val stagingDir = rootDir / "$areaId.staging"
     val areaDir = rootDir / areaId
-    if (fileSystem.exists(areaDir)) fileSystem.deleteRecursively(areaDir)
+    // Stage the new area completely before touching an existing install: a
+    // failed refresh must never destroy the data the user already has.
     try {
-      StoreZip.extract(fileSystem, zipPath, areaDir)
-      rewriteStyles(areaDir)
-      val manifest = readManifest(areaDir)
+      fileSystem.sink(zipPath).buffer().use { sink ->
+        client.downloadOfflineBundle(bbox = bbox, maxzoom = maxzoom, sink = sink, onProgress = onProgress)
+      }
+      if (fileSystem.exists(stagingDir)) fileSystem.deleteRecursively(stagingDir)
+      StoreZip.extract(fileSystem, zipPath, stagingDir)
+      val manifest = readManifest(stagingDir)
         ?: throw StoreZip.ZipException("bundle has no manifest.json")
-      return OfflineArea(areaId, areaDir, manifest)
+      if (fileSystem.exists(areaDir)) fileSystem.deleteRecursively(areaDir)
+      fileSystem.atomicMove(stagingDir, areaDir)
+      rewriteStyles(areaDir)
+      return OfflineArea(areaId, areaDir, readManifest(areaDir) ?: manifest)
     } finally {
       fileSystem.delete(zipPath, mustExist = false)
+      if (fileSystem.exists(stagingDir)) fileSystem.deleteRecursively(stagingDir)
     }
   }
 
   fun list(): List<OfflineArea> {
     if (!fileSystem.exists(rootDir)) return emptyList()
+    sweepLeftovers()
     return fileSystem.list(rootDir)
       .filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
       .mapNotNull { dir ->
         readManifest(dir)?.let { OfflineArea(dir.name, dir, it) }
       }
+  }
+
+  /** Removes partial downloads/stagings orphaned by a crash or kill. */
+  private fun sweepLeftovers() {
+    fileSystem.list(rootDir).forEach { path ->
+      when {
+        path.name.endsWith(".zip.part") -> fileSystem.delete(path, mustExist = false)
+        path.name.endsWith(".staging") -> fileSystem.deleteRecursively(path)
+      }
+    }
   }
 
   fun delete(areaId: String) {

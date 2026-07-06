@@ -104,7 +104,13 @@ object StoreZip {
       if (bytes[i] == 0x50.toByte() && bytes[i + 1] == 0x4b.toByte() &&
         bytes[i + 2] == 0x05.toByte() && bytes[i + 3] == 0x06.toByte()
       ) {
-        return start + i
+        // Guard against the signature bytes appearing inside a comment: a
+        // real EOCD's comment length reaches exactly to end-of-file.
+        val commentLen = ((bytes[i + 20].toInt() and 0xff) or
+          ((bytes[i + 21].toInt() and 0xff) shl 8)).toLong()
+        if (start + i + EOCD_MIN_SIZE + commentLen == size) {
+          return start + i
+        }
       }
     }
     throw ZipException("end of central directory not found")

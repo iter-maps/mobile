@@ -13,8 +13,12 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.plugins.timeout
+import io.ktor.client.request.prepareGet
+import io.ktor.client.statement.HttpStatement
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.encodeURLParameter
 import io.ktor.http.encodeURLPathPart
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
@@ -169,7 +173,8 @@ class IterGatewayClient(
 
   /** URL for a Commons image proxied by the gateway; width clamped server-side to 16..2048. */
   fun placeImageUrl(file: String, width: Int = 640): String {
-    val encoded = file.encodeURLPathPart()
+    // Query-parameter encoding: Commons names legally contain '&', '+', '='.
+    val encoded = file.encodeURLParameter()
     return "$baseUrl/places/image?file=$encoded&width=$width"
   }
 
@@ -251,7 +256,7 @@ class IterGatewayClient(
     onProgress: (Long, Long?) -> Unit = { _, _ -> },
   ) {
     downloadToSink(sink, onProgress) {
-      get("$baseUrl/offline/bundle") {
+      prepareGet("$baseUrl/offline/bundle") {
         parameter("bbox", bbox)
         maxzoom?.let { parameter("maxzoom", it) }
         minzoom?.let { parameter("minzoom", it) }
@@ -259,6 +264,7 @@ class IterGatewayClient(
         parameter("glyphs", glyphs)
         parameter("sprite", sprite)
         parameter("overlays", overlays)
+        timeout { requestTimeoutMillis = DOWNLOAD_TIMEOUT_MS }
       }
     }
   }
@@ -272,10 +278,11 @@ class IterGatewayClient(
     onProgress: (Long, Long?) -> Unit = { _, _ -> },
   ) {
     downloadToSink(sink, onProgress) {
-      get("$baseUrl/offline/extract") {
+      prepareGet("$baseUrl/offline/extract") {
         parameter("bbox", bbox)
         maxzoom?.let { parameter("maxzoom", it) }
         minzoom?.let { parameter("minzoom", it) }
+        timeout { requestTimeoutMillis = DOWNLOAD_TIMEOUT_MS }
       }
     }
   }
@@ -315,10 +322,17 @@ class IterGatewayClient(
       }
     }.body()
 
+  /**
+   * Idempotent delete: a 404 (disabled feature / unknown key / already gone —
+   * indistinguishable by contract) is swallowed. A stale [ifMatch] still
+   * raises `VERSION_CONFLICT`.
+   */
   suspend fun syncDelete(keyId: String, ifMatch: String? = null) {
-    request {
-      delete("$baseUrl/sync/${keyId.encodeURLPathPart()}") {
-        ifMatch?.let { header("If-Match", "\"$it\"") }
+    optional {
+      request {
+        delete("$baseUrl/sync/${keyId.encodeURLPathPart()}") {
+          ifMatch?.let { header("If-Match", "\"$it\"") }
+        }
       }
     }
   }
@@ -345,30 +359,44 @@ class IterGatewayClient(
       if (e.status == 404) null else throw e
     }
 
+  /**
+   * True streaming download: `prepareGet(...).execute { }` hands the response
+   * over before the body is consumed, so the bundle never sits in memory.
+   */
   private suspend fun downloadToSink(
     sink: BufferedSink,
     onProgress: (Long, Long?) -> Unit,
-    block: suspend HttpClient.() -> HttpResponse,
+    block: suspend HttpClient.() -> HttpStatement,
   ) {
-    val response = request(block)
-    val total = response.headers["Content-Length"]?.toLongOrNull()
-    val channel = response.bodyAsChannel()
-    val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
-    var read = 0L
-    while (true) {
-      val n = channel.readAvailable(buffer, 0, buffer.size)
-      if (n == -1) break
-      if (n > 0) {
-        sink.write(buffer, 0, n)
-        read += n
-        onProgress(read, total)
-      }
+    val statement = try {
+      http.block()
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      throw IterTransportException("gateway unreachable: ${e.message}", e)
     }
-    sink.flush()
+    statement.execute { response ->
+      if (!response.status.isSuccess()) throw response.toApiException()
+      val total = response.headers["Content-Length"]?.toLongOrNull()
+      val channel = response.bodyAsChannel()
+      val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+      var read = 0L
+      while (true) {
+        val n = channel.readAvailable(buffer, 0, buffer.size)
+        if (n == -1) break
+        if (n > 0) {
+          sink.write(buffer, 0, n)
+          read += n
+          onProgress(read, total)
+        }
+      }
+      sink.flush()
+    }
   }
 
   private companion object {
     const val DOWNLOAD_BUFFER_SIZE = 64 * 1024
+    const val DOWNLOAD_TIMEOUT_MS = 15 * 60 * 1000L
   }
 }
 
