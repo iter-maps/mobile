@@ -29,7 +29,8 @@ class IterSettings(
   )
   val themeMode: StateFlow<ThemeMode> = _themeMode
 
-  private val _dynamicColor = MutableStateFlow(store.getBoolean(KEY_DYNAMIC, true))
+  // Brand palette by default; wallpaper tinting is opt-in (ADR 0013).
+  private val _dynamicColor = MutableStateFlow(store.getBoolean(KEY_DYNAMIC, false))
   val dynamicColor: StateFlow<Boolean> = _dynamicColor
 
   private val _mapMode = MutableStateFlow(

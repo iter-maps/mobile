@@ -19,7 +19,7 @@ import it.iterapp.core.settings.ThemeMode
 @Composable
 fun IterTheme(
   themeMode: ThemeMode = ThemeMode.SYSTEM,
-  dynamicColor: Boolean = true,
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val darkTheme = when (themeMode) {
