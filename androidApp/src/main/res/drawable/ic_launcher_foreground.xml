@@ -1,22 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Brand route glyph from icon.svg, centered and scaled into the adaptive
+     safe zone (group re-centers the glyph from (529,496) to (512,512)). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
   android:width="108dp"
   android:height="108dp"
-  android:viewportWidth="108"
-  android:viewportHeight="108">
-  <!-- "it" monogram: dot + stem of the i, and a t whose bar doubles as a route line -->
-  <group>
+  android:viewportWidth="1024"
+  android:viewportHeight="1024">
+  <group
+    android:scaleX="0.85"
+    android:scaleY="0.85"
+    android:pivotX="529"
+    android:pivotY="496"
+    android:translateX="-17"
+    android:translateY="16">
+    <!-- i stem (rounded rect) -->
     <path
       android:fillColor="#FFFFFF"
-      android:pathData="M40,44 h8 v26 h-8 z" />
+      android:pathData="M308.6,414.1 a44,44 0 0 1 44,-44 a44,44 0 0 1 44,44 v274 a44,44 0 0 1 -44,44 a44,44 0 0 1 -44,-44 z" />
+    <!-- t hook -->
     <path
-      android:fillColor="#B9BDFF"
-      android:pathData="M44,31 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" />
+      android:strokeColor="#FFFFFF"
+      android:strokeWidth="88"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M632.6,360.1 L632.6,624.1 C632.6,659.45 661.25,688.1 696.6,688.1 L704.6,688.1" />
+    <!-- crossbar -->
+    <path
+      android:strokeColor="#FFFFFF"
+      android:strokeWidth="88"
+      android:strokeLineCap="round"
+      android:pathData="M352.6,474.1 L704.6,474.1" />
+    <!-- node dot -->
     <path
       android:fillColor="#FFFFFF"
-      android:pathData="M58,38 h8 v32 h-8 z" />
+      android:pathData="M306.6,306.1 a46,46 0 1 0 92,0 a46,46 0 1 0 -92,0" />
     <path
-      android:fillColor="#B9BDFF"
-      android:pathData="M52,48 h20 v7 h-20 z" />
+      android:fillColor="#4248C9"
+      android:pathData="M334.6,306.1 a18,18 0 1 0 36,0 a18,18 0 1 0 -36,0" />
   </group>
 </vector>
