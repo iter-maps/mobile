@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Directions
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Train
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import it.iterapp.app.R
+import it.iterapp.app.common.SearchPillButton
 import it.iterapp.app.common.formatDistance
 import it.iterapp.app.common.formatStationName
 import it.iterapp.app.sheet.SheetSectionHeader
@@ -85,7 +85,11 @@ fun HomeSheetContent(
         verticalArrangement = Arrangement.spacedBy(14.dp),
       ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-          SearchPill(onClick = onSearch, modifier = Modifier.weight(1f))
+          SearchPillButton(
+            hint = stringResource(R.string.home_search_hint),
+            onClick = onSearch,
+            modifier = Modifier.weight(1f),
+          )
           Spacer(Modifier.width(10.dp))
           AvatarButton(onClick = onSettings)
         }
@@ -161,35 +165,6 @@ fun HomeSheetContent(
     }
 
     Spacer(Modifier.height(8.dp))
-  }
-}
-
-@Composable
-private fun SearchPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
-  Surface(
-    onClick = onClick,
-    shape = MaterialTheme.shapes.extraLarge,
-    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    modifier = modifier.height(54.dp),
-  ) {
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 18.dp),
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Icon(
-        Icons.Rounded.Search,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-      Spacer(Modifier.width(12.dp))
-      Text(
-        text = stringResource(R.string.home_search_hint),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-    }
   }
 }
 

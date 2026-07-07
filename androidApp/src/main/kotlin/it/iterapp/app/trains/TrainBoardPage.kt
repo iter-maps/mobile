@@ -3,28 +3,20 @@ package it.iterapp.app.trains
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Train
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,17 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
+import it.iterapp.app.common.IconListRow
+import it.iterapp.app.common.SheetSearchField
 import it.iterapp.app.sheet.SheetPageHeader
 import it.iterapp.app.ui.theme.DelayColors
 import it.iterapp.core.wire.BoardEntry
@@ -97,99 +86,28 @@ fun TrainBoardPage(
     )
 
     if (selected == null) {
-      Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+      SheetSearchField(
+        query = query,
+        onQueryChange = viewModel::onQueryChange,
+        placeholder = stringResource(R.string.trains_search_hint),
+        focusRequester = focusRequester,
         modifier = Modifier
           .fillMaxWidth()
-          .padding(start = 16.dp, end = 16.dp, bottom = 6.dp)
-          .height(52.dp),
+          .padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
+      )
+      LazyColumn(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(horizontal = 8.dp)
+          .imePadding(),
+        contentPadding = PaddingValues(vertical = 8.dp),
       ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier = Modifier.padding(horizontal = 16.dp),
-        ) {
-          Icon(
-            Icons.Rounded.Search,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-          )
-          Spacer(Modifier.size(10.dp))
-          Box(Modifier.weight(1f)) {
-            if (query.isEmpty()) {
-              Text(
-                text = stringResource(R.string.trains_search_hint),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-            }
-            BasicTextField(
-              value = query,
-              onValueChange = viewModel::onQueryChange,
-              singleLine = true,
-              textStyle = TextStyle.Default.merge(
-                MaterialTheme.typography.bodyLarge.copy(
-                  color = MaterialTheme.colorScheme.onSurface,
-                ),
-              ),
-              cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-              keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-              modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            )
-          }
-          if (query.isNotEmpty()) {
-            IconButton(
-              onClick = { viewModel.onQueryChange("") },
-              modifier = Modifier.size(28.dp),
-            ) {
-              Icon(
-                Icons.Rounded.Close,
-                contentDescription = stringResource(R.string.action_clear),
-                modifier = Modifier.size(18.dp),
-              )
-            }
-          }
-        }
-      }
-      LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         items(stations, key = { it.id }) { station ->
-          Surface(
+          IconListRow(
+            icon = Icons.Rounded.Train,
+            title = station.name,
             onClick = { viewModel.selectStation(station) },
-            color = Color.Transparent,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth(),
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
-            ) {
-              Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.size(40.dp),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Icon(
-                    Icons.Rounded.Train,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                  )
-                }
-              }
-              Text(
-                text = station.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = 14.dp),
-              )
-            }
-          }
+          )
         }
         when {
           query.isBlank() -> item {
@@ -197,7 +115,7 @@ fun TrainBoardPage(
               text = stringResource(R.string.trains_search_prompt),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
+              modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
             )
           }
           // The >= 2 gate mirrors SearchPage and keeps the hint from flashing
@@ -207,7 +125,7 @@ fun TrainBoardPage(
               text = stringResource(R.string.trains_no_stations),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
+              modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
             )
           }
         }
