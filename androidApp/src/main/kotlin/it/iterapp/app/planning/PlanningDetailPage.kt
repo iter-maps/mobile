@@ -1,5 +1,6 @@
 package it.iterapp.app.planning
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
 import it.iterapp.app.common.formatClock
+import it.iterapp.app.common.formatDistance
 import it.iterapp.app.common.formatDuration
 import it.iterapp.app.sheet.SheetPageHeader
 
@@ -41,7 +43,7 @@ fun PlanningDetailPage(
         .verticalScroll(rememberScrollState())
         .padding(horizontal = 20.dp),
     ) {
-      Row(modifier = Modifier.padding(bottom = 16.dp)) {
+      Row(modifier = Modifier.padding(bottom = 10.dp)) {
         Text(
           text = "${formatClock(itinerary.startMs)} – ${formatClock(itinerary.endMs)}",
           style = MaterialTheme.typography.titleLarge,
@@ -53,6 +55,29 @@ fun PlanningDetailPage(
           style = MaterialTheme.typography.titleLarge,
           fontWeight = FontWeight.Bold,
           color = MaterialTheme.colorScheme.primary,
+        )
+      }
+      ItinerarySegments(itinerary, Modifier.padding(bottom = 10.dp))
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.padding(bottom = 16.dp),
+      ) {
+        Text(
+          text = when (itinerary.numberOfTransfers) {
+            0 -> stringResource(R.string.planning_transfers_none)
+            1 -> stringResource(R.string.planning_transfers_one)
+            else -> stringResource(R.string.planning_transfers, itinerary.numberOfTransfers)
+          },
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+          text = stringResource(
+            R.string.planning_walk_distance,
+            formatDistance(itinerary.walkDistanceMeters),
+          ),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
       LegTimeline(itinerary)
