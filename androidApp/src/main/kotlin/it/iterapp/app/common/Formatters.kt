@@ -14,7 +14,11 @@ import kotlin.math.roundToInt
  */
 private val ROUTER_ZONE: TimeZone = TimeZone.getTimeZone("Europe/Rome")
 
-/** `14:05` in the device locale's 24h clock. */
+/**
+ * `14:05` — always 24h, by design: the wire's board times are preformatted
+ * 24h strings the client can't re-render, and transit in the served network
+ * is culturally 24h, so a device 12h preference would split the app in two.
+ */
 fun formatClock(epochMs: Long): String =
   SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(epochMs))
 

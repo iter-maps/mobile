@@ -8,26 +8,22 @@
   <string name="action_retry">Retry</string>
   <string name="action_cancel">Cancel</string>
   <string name="action_delete">Delete</string>
-  <string name="action_search">Search</string>
   <string name="action_clear">Clear</string>
   <string name="action_ok">OK</string>
   <string name="action_refresh">Refresh</string>
   <string name="action_expand">Expand</string>
   <string name="action_collapse">Collapse</string>
   <string name="sheet_handle_cd">Sheet handle</string>
-  <string name="state_loading">Loading…</string>
   <string name="state_expanded">Expanded</string>
   <string name="state_collapsed">Collapsed</string>
   <string name="error_network">Can\'t reach the server</string>
   <string name="error_generic">Something went wrong</string>
-  <string name="empty_results">No results</string>
 
   <!-- Home sheet -->
   <string name="home_search_hint">Where to?</string>
   <string name="home_quick_planning">Directions</string>
   <string name="home_quick_boards">Trains</string>
   <string name="home_quick_offline">Offline</string>
-  <string name="home_quick_settings">Settings</string>
   <string name="home_settings_cd">Settings</string>
   <string name="home_section_recents">Recent</string>
   <string name="home_section_nearby">Nearby stations</string>
@@ -62,7 +58,6 @@
   <string name="planning_my_location">My location</string>
   <string name="planning_choose_on_search">Search an address</string>
   <string name="planning_now">Leave now</string>
-  <string name="planning_profile_label">Rank by</string>
   <string name="planning_profile_default">Fastest</string>
   <string name="planning_profile_reliability">Reliable</string>
   <string name="planning_profile_balanced">Balanced</string>
@@ -77,7 +72,6 @@
   <string name="planning_usually_delayed">Usually +%1$s here</string>
   <string name="planning_reliability_high">Usually on time</string>
   <string name="planning_reliability_low">Often delayed</string>
-  <string name="planning_duration_min">%1$d min</string>
   <string name="planning_stops_count">%1$d stops</string>
   <string name="planning_arrive_by">Arrive by</string>
   <string name="planning_depart_at">Depart at</string>
@@ -144,7 +138,6 @@
   <string name="layers_title">Map style</string>
 
   <!-- Map controls -->
-  <string name="map_recenter">Re-center</string>
   <string name="map_compass">Point north</string>
-  <string name="map_my_location">My position</string>
+  <string name="map_my_location">My location</string>
 </resources>
