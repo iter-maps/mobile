@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.setValue
@@ -66,7 +68,8 @@ fun PlaceDetailPage(
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp),
+        .padding(horizontal = 20.dp)
+        .navigationBarsPadding(),
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       place.detail?.let {
@@ -84,23 +87,35 @@ fun PlaceDetailPage(
           .height(54.dp),
         shape = MaterialTheme.shapes.medium,
       ) {
-        Icon(Icons.Rounded.Directions, contentDescription = null)
+        Icon(
+          Icons.Rounded.Directions,
+          contentDescription = null,
+          modifier = Modifier.size(20.dp),
+        )
         Text(
           text = stringResource(R.string.place_directions),
-          modifier = Modifier.padding(start = 8.dp),
+          style = MaterialTheme.typography.titleMedium,
+          modifier = Modifier.padding(start = 10.dp),
         )
       }
 
       if (place.isTrainStation) {
         OutlinedButton(
           onClick = { onTrainBoard(place) },
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
           shape = MaterialTheme.shapes.medium,
         ) {
-          Icon(Icons.Rounded.Train, contentDescription = null)
+          Icon(
+            Icons.Rounded.Train,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+          )
           Text(
             text = stringResource(R.string.place_train_board),
-            modifier = Modifier.padding(start = 8.dp),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(start = 10.dp),
           )
         }
       }

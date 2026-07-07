@@ -77,6 +77,8 @@
   <string name="trains_early_min">−%1$d min</string>
   <string name="trains_on_time">In orario</string>
   <string name="trains_empty">Nessun treno al momento</string>
+  <string name="trains_search_prompt">Cerca una stazione per vedere i tabelloni</string>
+  <string name="trains_no_stations">Nessuna stazione trovata</string>
 
   <!-- Offline -->
   <string name="offline_title">Mappe offline</string>
