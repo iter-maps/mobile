@@ -34,7 +34,9 @@ enum class PlanProfile(val wireValue: String?) {
 
 sealed interface PlanState {
   data object Idle : PlanState
-  data object Loading : PlanState
+
+  /** [previous] keeps the outgoing results visible (dimmed) during a replan. */
+  data class Loading(val previous: List<Itinerary>? = null) : PlanState
   data class Results(val itineraries: List<Itinerary>) : PlanState
   data class Error(val network: Boolean) : PlanState
 }
@@ -93,26 +95,28 @@ class PlanningViewModel(
   fun setProfile(value: PlanProfile) {
     if (profile.value == value) return
     profile.value = value
-    replan()
+    // Same trip, new ranking: keep the current list on screen while it loads.
+    replan(keepCurrent = true)
   }
 
   fun setDeparture(epochMs: Long?, arrive: Boolean) {
     departureMs.value = epochMs
     arriveBy.value = arrive
-    replan()
+    replan(keepCurrent = true)
   }
 
   fun select(itinerary: Itinerary?) {
     selected.value = itinerary
   }
 
-  fun replan() {
+  fun replan(keepCurrent: Boolean = false) {
     val origin = from.value ?: return
     val destination = to.value ?: return
+    val previous = if (keepCurrent) (_state.value as? PlanState.Results)?.itineraries else null
     planJob?.cancel()
     planJob = viewModelScope.launch {
-      _state.value = PlanState.Loading
-      selected.value = null
+      _state.value = PlanState.Loading(previous)
+      if (!keepCurrent) selected.value = null
       try {
         val (date, time) = departureMs.value?.let { planDateTime(it) } ?: (null to null)
         val itineraries = repository.plan(

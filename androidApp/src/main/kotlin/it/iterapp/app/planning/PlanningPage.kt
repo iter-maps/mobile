@@ -1,15 +1,26 @@
 package it.iterapp.app.planning
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,15 +30,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.PinDrop
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.SwapVert
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,21 +54,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
+import it.iterapp.app.common.SkeletonBlock
 import it.iterapp.app.common.formatClock
 import it.iterapp.app.common.formatDistance
 import it.iterapp.app.common.formatDuration
+import it.iterapp.app.common.rememberSkeletonPulse
 import it.iterapp.app.sheet.SheetPageHeader
+import it.iterapp.app.sheet.SheetStatusMessage
 import it.iterapp.core.model.Itinerary
 
 /**
- * Planning page: from/to fields, ranking profile chips, itinerary results.
- * Selecting an itinerary draws it on the map behind the sheet (ADR 0008);
- * the trailing chevron button on each card opens the leg detail.
+ * Planning page: from/to fields, departure-time chip, ranking profile chips,
+ * itinerary results. Selecting an itinerary draws it on the map behind the
+ * sheet (ADR 0008); the trailing chevron button on each card opens the leg
+ * detail.
  */
 @Composable
 fun PlanningPage(
@@ -83,7 +106,7 @@ fun PlanningPage(
         .padding(horizontal = 16.dp),
     ) {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f).padding(start = 16.dp, top = 6.dp, bottom = 6.dp)) {
+        Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
           EndpointField(
             isFrom = true,
             value = from?.let {
@@ -91,9 +114,9 @@ fun PlanningPage(
             },
             onClick = { onPickEndpoint(true) },
           )
-          androidx.compose.material3.HorizontalDivider(
+          HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            modifier = Modifier.padding(start = 32.dp),
+            modifier = Modifier.padding(start = 48.dp),
           )
           EndpointField(
             isFrom = false,
@@ -137,7 +160,7 @@ fun PlanningPage(
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       modifier = Modifier
         .horizontalScroll(rememberScrollState())
-        .padding(horizontal = 16.dp, vertical = 10.dp),
+        .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
       PlanProfile.entries.forEach { p ->
         FilterChip(
@@ -159,41 +182,121 @@ fun PlanningPage(
       }
     }
 
-    when (val s = state) {
-      PlanState.Idle -> {}
-      PlanState.Loading -> Box(
-        Modifier.fillMaxWidth().padding(vertical = 32.dp),
-        contentAlignment = Alignment.Center,
-      ) {
-        CircularProgressIndicator()
-      }
-      is PlanState.Error -> Text(
-        text = stringResource(if (s.network) R.string.error_network else R.string.error_generic),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-      )
-      is PlanState.Results -> {
-        if (s.itineraries.isEmpty()) {
-          Text(
-            text = stringResource(R.string.planning_no_results),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-          )
-        } else {
-          LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 16.dp, vertical = 4.dp,
-          )) {
-            items(s.itineraries) { itinerary ->
-              ItineraryCard(
-                itinerary = itinerary,
-                isSelected = itinerary === selected,
-                onClick = { viewModel.select(itinerary) },
-                onOpenDetail = onOpenDetail,
-              )
-            }
+    AnimatedContent(
+      targetState = state,
+      transitionSpec = {
+        (fadeIn(spring(stiffness = 260f)) togetherWith fadeOut(spring(stiffness = 260f)))
+          .using(SizeTransform(clip = false))
+      },
+      label = "plan-state",
+    ) { s ->
+      when (s) {
+        PlanState.Idle -> {}
+        is PlanState.Loading -> if (s.previous != null) {
+          // Replan: keep the outgoing list, dimmed, under a thin progress bar.
+          Column {
+            LinearProgressIndicator(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            )
+            ItineraryList(
+              itineraries = s.previous,
+              selected = selected,
+              enabled = false,
+              onSelect = {},
+              onOpenDetail = {},
+              modifier = Modifier.padding(top = 8.dp),
+            )
           }
+        } else {
+          ItinerarySkeletons()
+        }
+        is PlanState.Error -> SheetStatusMessage(
+          icon = if (s.network) Icons.Rounded.CloudOff else Icons.Rounded.ErrorOutline,
+          message = stringResource(if (s.network) R.string.error_network else R.string.error_generic),
+          action = {
+            FilledTonalButton(onClick = { viewModel.replan() }) {
+              Text(stringResource(R.string.action_retry))
+            }
+          },
+        )
+        is PlanState.Results -> {
+          if (s.itineraries.isEmpty()) {
+            SheetStatusMessage(
+              icon = Icons.Rounded.SearchOff,
+              message = stringResource(R.string.planning_no_results),
+            )
+          } else {
+            ItineraryList(
+              itineraries = s.itineraries,
+              selected = selected,
+              enabled = true,
+              onSelect = viewModel::select,
+              onOpenDetail = onOpenDetail,
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun ItineraryList(
+  itineraries: List<Itinerary>,
+  selected: Itinerary?,
+  enabled: Boolean,
+  onSelect: (Itinerary) -> Unit,
+  onOpenDetail: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+    modifier = if (enabled) modifier else modifier.alpha(0.55f),
+  ) {
+    items(itineraries) { itinerary ->
+      ItineraryCard(
+        itinerary = itinerary,
+        isSelected = itinerary === selected,
+        onClick = { if (enabled) onSelect(itinerary) },
+        onOpenDetail = { if (enabled) onOpenDetail() },
+      )
+    }
+  }
+}
+
+/** First-load placeholders shaped like the real cards — no layout jump. */
+@Composable
+private fun ItinerarySkeletons() {
+  val pulse = rememberSkeletonPulse()
+  Column(
+    verticalArrangement = Arrangement.spacedBy(12.dp),
+    modifier = Modifier.padding(horizontal = 16.dp),
+  ) {
+    repeat(3) {
+      Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Column(
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+          modifier = Modifier.padding(16.dp),
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            SkeletonBlock(Modifier.size(width = 88.dp, height = 24.dp), pulse)
+            Spacer(Modifier.weight(1f))
+            SkeletonBlock(Modifier.size(width = 96.dp, height = 14.dp), pulse)
+          }
+          SkeletonBlock(
+            Modifier
+              .fillMaxWidth()
+              .height(30.dp),
+            pulse,
+          )
+          SkeletonBlock(Modifier.size(width = 180.dp, height = 12.dp), pulse)
         }
       }
     }
@@ -207,7 +310,7 @@ private fun EndpointField(isFrom: Boolean, value: String?, onClick: () -> Unit) 
     modifier = Modifier
       .fillMaxWidth()
       .clickable(onClick = onClick)
-      .padding(vertical = 12.dp),
+      .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
   ) {
     Icon(
       if (isFrom) Icons.Rounded.MyLocation else Icons.Rounded.PinDrop,
@@ -223,13 +326,19 @@ private fun EndpointField(isFrom: Boolean, value: String?, onClick: () -> Unit) 
     )
     Spacer(Modifier.width(12.dp))
     if (value != null) {
-      Text(text = value, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+      Text(
+        text = value,
+        style = MaterialTheme.typography.bodyLarge,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
     } else {
       Text(
         text = stringResource(R.string.planning_choose_on_search),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
       )
     }
   }
@@ -246,6 +355,7 @@ private fun profileLabel(profile: PlanProfile): String = stringResource(
   },
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ItineraryCard(
   itinerary: Itinerary,
@@ -253,39 +363,62 @@ private fun ItineraryCard(
   onClick: () -> Unit,
   onOpenDetail: () -> Unit,
 ) {
-  Surface(
-    onClick = onClick,
-    shape = MaterialTheme.shapes.large,
-    color = if (isSelected) {
+  val containerColor by animateColorAsState(
+    if (isSelected) {
       MaterialTheme.colorScheme.secondaryContainer
     } else {
       MaterialTheme.colorScheme.surfaceContainerHigh
     },
-    border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
-    modifier = Modifier
-      .fillMaxWidth()
-      .padding(vertical = 5.dp),
+    tween(200),
+    label = "itineraryContainer",
+  )
+  val contentColor by animateColorAsState(
+    if (isSelected) {
+      MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+      MaterialTheme.colorScheme.onSurface
+    },
+    tween(200),
+    label = "itineraryContent",
+  )
+  val borderColor by animateColorAsState(
+    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+    tween(200),
+    label = "itineraryBorder",
+  )
+  Surface(
+    selected = isSelected,
+    onClick = onClick,
+    shape = MaterialTheme.shapes.large,
+    color = containerColor,
+    contentColor = contentColor,
+    border = BorderStroke(1.5.dp, borderColor),
+    modifier = Modifier.fillMaxWidth(),
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
       Column(
-        Modifier.weight(1f).padding(14.dp),
+        Modifier.weight(1f).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        Row(verticalAlignment = Alignment.Bottom) {
+        Row {
           Text(
             text = formatDuration(itinerary.durationSeconds),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).alignByBaseline(),
           )
           Text(
             text = "${formatClock(itinerary.startMs)} – ${formatClock(itinerary.endMs)}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.alignByBaseline(),
           )
         }
         ItinerarySegments(itinerary)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FlowRow(
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
           Text(
             text = when (itinerary.numberOfTransfers) {
               0 -> stringResource(R.string.planning_transfers_none)
@@ -306,7 +439,7 @@ private fun ItineraryCard(
           ReliabilityHint(itinerary)
         }
       }
-      FilledTonalIconButton(onClick = onOpenDetail, modifier = Modifier.padding(end = 10.dp)) {
+      FilledTonalIconButton(onClick = onOpenDetail, modifier = Modifier.padding(end = 12.dp)) {
         Icon(
           Icons.Rounded.ChevronRight,
           contentDescription = stringResource(R.string.planning_detail_title),
