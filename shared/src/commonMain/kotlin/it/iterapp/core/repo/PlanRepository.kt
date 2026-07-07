@@ -84,6 +84,7 @@ internal fun OtpLeg.toDomain(): Leg {
     distanceMeters = distance,
     isRealTime = realTime,
     arrivalDelaySeconds = arrivalDelay,
+    departureDelaySeconds = departureDelay,
     headsign = headsign ?: trip?.tripHeadsign,
     routeGtfsId = route?.gtfsId,
     routeShortName = route?.shortName,

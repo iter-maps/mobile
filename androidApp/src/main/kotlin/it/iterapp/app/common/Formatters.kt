@@ -59,19 +59,33 @@ fun formatDelay(seconds: Double): String {
   return if (s >= 90) "${(s / 60.0).roundToInt()} min" else "$s s"
 }
 
+/** `14:05` on the router's wall clock — pairs with [routerTimeNextAt]. */
+fun formatRouterClock(epochMs: Long): String =
+  SimpleDateFormat("HH:mm", Locale.getDefault())
+    .apply { timeZone = ROUTER_ZONE }
+    .format(Date(epochMs))
+
 /** Hour and minute of [epochMs] on the router's wall clock. */
 fun routerHourMinute(epochMs: Long): Pair<Int, Int> {
   val cal = Calendar.getInstance(ROUTER_ZONE).apply { timeInMillis = epochMs }
   return cal.get(Calendar.HOUR_OF_DAY) to cal.get(Calendar.MINUTE)
 }
 
-/** Epoch millis of today at [hour]:[minute] on the router's wall clock. */
-fun routerTimeTodayAt(hour: Int, minute: Int): Long =
+/** Confirming the pre-filled current time must never jump a day. */
+private const val PAST_GRACE_MS = 5 * 60_000L
+
+/**
+ * Epoch millis of the next occurrence of [hour]:[minute] on the router's
+ * wall clock: picking 00:20 at 23:40 means tonight, not this morning. Times
+ * up to [PAST_GRACE_MS] in the past still count as today.
+ */
+fun routerTimeNextAt(hour: Int, minute: Int): Long =
   Calendar.getInstance(ROUTER_ZONE).apply {
     set(Calendar.HOUR_OF_DAY, hour)
     set(Calendar.MINUTE, minute)
     set(Calendar.SECOND, 0)
     set(Calendar.MILLISECOND, 0)
+    if (timeInMillis < System.currentTimeMillis() - PAST_GRACE_MS) add(Calendar.DAY_OF_YEAR, 1)
   }.timeInMillis
 
 /** OTP `YYYY-MM-DD` + `HH:MM` for a plan departure, in the router's zone. */

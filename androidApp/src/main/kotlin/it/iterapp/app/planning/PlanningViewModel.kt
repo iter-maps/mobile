@@ -41,6 +41,17 @@ sealed interface PlanState {
   data class Error(val network: Boolean) : PlanState
 }
 
+/**
+ * What a keepCurrent replan keeps on screen: live results, or the list an
+ * in-flight keepCurrent replan is already keeping — so back-to-back profile
+ * taps never collapse the dimmed list into first-load skeletons.
+ */
+internal fun keptItineraries(state: PlanState): List<Itinerary>? = when (state) {
+  is PlanState.Results -> state.itineraries
+  is PlanState.Loading -> state.previous
+  else -> null
+}
+
 class PlanningViewModel(
   private val repository: PlanRepository,
   private val locationProvider: LocationProvider,
@@ -112,7 +123,7 @@ class PlanningViewModel(
   fun replan(keepCurrent: Boolean = false) {
     val origin = from.value ?: return
     val destination = to.value ?: return
-    val previous = if (keepCurrent) (_state.value as? PlanState.Results)?.itineraries else null
+    val previous = if (keepCurrent) keptItineraries(_state.value) else null
     planJob?.cancel()
     planJob = viewModelScope.launch {
       _state.value = PlanState.Loading(previous)

@@ -84,6 +84,8 @@ data class Leg(
   val isRealTime: Boolean,
   /** Signed seconds of live arrival delay when realtime. */
   val arrivalDelaySeconds: Int,
+  /** Signed seconds of live departure delay when realtime. */
+  val departureDelaySeconds: Int,
   val headsign: String?,
   val routeGtfsId: String?,
   val routeShortName: String?,

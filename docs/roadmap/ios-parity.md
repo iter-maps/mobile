@@ -12,7 +12,12 @@ the look.
 - **In progress:** visual pass on Liquid Glass chrome (glass button styles,
   sheet materials, morphing transitions) with the pre-26 material fallback.
 - **Planned:** onboarding, Live Activities for trips
-  ([`turn-by-turn-navigation.md`](turn-by-turn-navigation.md)).
+  ([`turn-by-turn-navigation.md`](turn-by-turn-navigation.md)); porting the
+  Android design pass 2 UX (depart-at/arrive-by control, my-location endpoint
+  pick, resilient board polling with stale caption and manual refresh,
+  live-delay tinting on the leg timeline, transfer arrival times, skeleton
+  loading, labeled/actionable place facets, nearby-state model, delete
+  confirmation) — Android remains the UX reference.
 - **Note:** built on non-Mac hosts the Swift sources are review-verified only;
   CI's macOS lane is the compile gate ([`release-hardening.md`](release-hardening.md)).
 

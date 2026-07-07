@@ -260,8 +260,9 @@ private fun ItineraryList(
       ItineraryCard(
         itinerary = itinerary,
         isSelected = itinerary === selected,
-        onClick = { if (enabled) onSelect(itinerary) },
-        onOpenDetail = { if (enabled) onOpenDetail() },
+        enabled = enabled,
+        onClick = { onSelect(itinerary) },
+        onOpenDetail = onOpenDetail,
       )
     }
   }
@@ -360,6 +361,7 @@ private fun profileLabel(profile: PlanProfile): String = stringResource(
 private fun ItineraryCard(
   itinerary: Itinerary,
   isSelected: Boolean,
+  enabled: Boolean,
   onClick: () -> Unit,
   onOpenDetail: () -> Unit,
 ) {
@@ -389,6 +391,7 @@ private fun ItineraryCard(
   Surface(
     selected = isSelected,
     onClick = onClick,
+    enabled = enabled,
     shape = MaterialTheme.shapes.large,
     color = containerColor,
     contentColor = contentColor,
@@ -439,7 +442,11 @@ private fun ItineraryCard(
           ReliabilityHint(itinerary)
         }
       }
-      FilledTonalIconButton(onClick = onOpenDetail, modifier = Modifier.padding(end = 12.dp)) {
+      FilledTonalIconButton(
+        onClick = onOpenDetail,
+        enabled = enabled,
+        modifier = Modifier.padding(end = 12.dp),
+      ) {
         Icon(
           Icons.Rounded.ChevronRight,
           contentDescription = stringResource(R.string.planning_detail_title),

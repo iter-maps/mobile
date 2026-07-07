@@ -138,11 +138,14 @@ fun PlaceDetailPage(
       }
 
       // Enrichment eases in as one block and stays composed once resolved,
-      // so a late clear can't snap 300dp of content out mid-read.
+      // so a late clear can't snap 300dp of content out mid-read. Gated on
+      // the source place id: a stale flow value from the previous place
+      // (map-tap replaces the page before load() nulls it) composes nothing.
+      val current = enriched?.takeIf { it.first == place.id }?.second
       var retained by remember { mutableStateOf<Place?>(null) }
-      enriched?.let { retained = it }
+      current?.let { retained = it }
       AnimatedVisibility(
-        visible = enriched != null,
+        visible = current != null,
         enter = fadeIn(tween(250)) + expandVertically(),
       ) {
         retained?.let { placeInfo ->

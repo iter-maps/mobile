@@ -20,8 +20,10 @@ class PlaceDetailViewModel(
   private val repository: PlacesRepository,
 ) : ViewModel() {
 
-  private val _enriched = MutableStateFlow<Place?>(null)
-  val enriched: StateFlow<Place?> = _enriched
+  /** Keyed by the source [SearchResult.id] so a page for place B can never
+   * render enrichment still held for place A. */
+  private val _enriched = MutableStateFlow<Pair<String, Place>?>(null)
+  val enriched: StateFlow<Pair<String, Place>?> = _enriched
 
   private var job: Job? = null
 
@@ -32,6 +34,7 @@ class PlaceDetailViewModel(
     job = viewModelScope.launch {
       _enriched.value = try {
         repository.enrichByTitle(place.name, Locale.getDefault().language)
+          ?.let { place.id to it }
       } catch (_: Exception) {
         null
       }

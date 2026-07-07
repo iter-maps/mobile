@@ -26,8 +26,15 @@ class FormattersTest {
 
   @Test
   fun routerTimeRoundTripsHourAndMinute() {
-    assertEquals(14 to 30, routerHourMinute(routerTimeTodayAt(14, 30)))
-    assertEquals(0 to 5, routerHourMinute(routerTimeTodayAt(0, 5)))
+    // A day roll preserves the router wall-clock hour and minute.
+    assertEquals(14 to 30, routerHourMinute(routerTimeNextAt(14, 30)))
+    assertEquals(0 to 5, routerHourMinute(routerTimeNextAt(0, 5)))
+  }
+
+  @Test
+  fun routerTimeNextAtNeverLandsInThePast() {
+    val (h, m) = routerHourMinute(System.currentTimeMillis() - 60 * 60_000L)
+    assert(routerTimeNextAt(h, m) >= System.currentTimeMillis() - 5 * 60_000L)
   }
 
   @Test

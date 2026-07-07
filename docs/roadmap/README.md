@@ -25,8 +25,8 @@ Glass** on iOS. "Decision" pointers below name the relevant ADRs by number
   surfaces ([`place-discovery.md`](place-discovery.md)).
 - **Journey planning** ✅ done (ADR 0006) — OTP GraphQL plan queries with
   rerank profiles and historical delay prediction, itinerary cards and leg
-  detail. **Remaining:** filters UI (modes, transfers, wheelchair), arrive-by,
-  per-factor "why ranked here" explanations
+  detail, depart-at/arrive-by times (Android). **Remaining:** filters UI
+  (modes, transfers, wheelchair), per-factor "why ranked here" explanations
   ([`reliability-ui.md`](reliability-ui.md)).
 - **Live train boards** ✅ done — station autocomplete + departures/arrivals
   polling at the contract's cadence. **Remaining:** favorite stations; board →

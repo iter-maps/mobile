@@ -196,7 +196,8 @@ private fun TimelineClock(epochMs: Long, live: Boolean, delaySeconds: Int) {
     fontWeight = FontWeight.SemiBold,
     maxLines = 1,
     softWrap = false,
-    color = if (live) delayColor(delaySeconds / 60) else Color.Unspecified,
+    // floorDiv: -30s must classify as early, not truncate to on-time.
+    color = if (live) delayColor(delaySeconds.floorDiv(60)) else Color.Unspecified,
   )
 }
 
@@ -244,7 +245,7 @@ private fun LegRow(
       TimelineClock(
         epochMs = leg.startMs,
         live = leg.isTransit && leg.isRealTime,
-        delaySeconds = leg.arrivalDelaySeconds,
+        delaySeconds = leg.departureDelaySeconds,
       )
       if (nextLegStartMs != null && nextLegStartMs - leg.endMs >= 60_000L) {
         Text(

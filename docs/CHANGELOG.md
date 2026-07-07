@@ -31,9 +31,32 @@ sits under Unreleased until the first tag.
   Android page set; XcodeGen project, shared framework via Gradle.
 - CI: Android build/test/lint + shared iOS klib type-check on Linux, unsigned
   simulator build on macOS, REUSE lint.
+- Android planning: departure-time control (depart-at / arrive-by dialog on
+  the router's wall clock) surfacing ViewModel plumbing that previously had
+  no UI, and a pinned "My location" row in the endpoint picker; manual board
+  refresh from the boards header.
 
 ### Changed
 
+- Android design pass 2 (78 review findings verified and applied): shared
+  search-field/list-row/place-icon composables ending the per-page drift;
+  theme-aware delay inks and a WCAG-correct badge-ink crossover; sheet
+  shadow, tap-and-TalkBack-operable drag handle, status-bar-aware Full
+  anchor, scrolled-under page headers; planning results that survive replans
+  (dimmed list under a progress bar) with skeleton first loads, animated
+  card selection and status-block empty/error states with retry; a
+  during-travel timeline with live delay tinting, transfer arrival times,
+  endpoint labels instead of wire placeholders, aligned centerlines and
+  theme-aware walk rails; train boards that keep the last good board through
+  failed polls (stale caption), segmented Departures/Arrivals, category
+  badges, contained platform chips and merged row semantics; labeled,
+  actionable place facets with translated values and eased-in enrichment;
+  home recents as icon-led rows and a stateful Nearby section (skeletons
+  while locating, 30 km ceiling, re-ranking distances); search with honest
+  error states, result distances and idle recents; offline delete
+  confirmation, humanized area rows and total-aware progress; URI keyboard
+  and full-row toggles in settings; pill CTAs app-wide; native Italian
+  copy and pruned dead strings.
 - Design restoration pass: real brand assets (wordmark, launcher icon), the
   brand tonal palette by default with Material You opt-in (ADR 0013), the
   home sheet rebuilt in the product's design language (search pill + avatar,
@@ -60,3 +83,13 @@ sits under Unreleased until the first tag.
   area cap; plan times use the router's timezone; place photos load with
   attribution on both platforms; iOS place enrichment, offline retry/installing
   states and error-code parity; corrected Gradle-wrapper licensing.
+- Android design pass 2: the ODbL-required map attribution was permanently
+  hidden behind the sheet (now rides its edge, theme-tinted); saved sheet
+  anchors leaked into forward pushes, reopening pages collapsed; a failed
+  board poll wiped the list being read; search/board network failures
+  rendered as empty states; flow cancellation could be swallowed by the
+  catch-all poll/search pipelines (exception transparency); nearby distances
+  froze at the session's first fix and had no distance ceiling; walk-leg
+  polylines vanished on dark map tiles; compass wraparound at 360°; the
+  detail page navigated back during composition when the selection cleared;
+  Italian-locale decimal commas garbled offline-area coordinates.

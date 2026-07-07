@@ -34,9 +34,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import it.iterapp.app.R
-import it.iterapp.app.common.formatClock
+import it.iterapp.app.common.formatRouterClock
 import it.iterapp.app.common.routerHourMinute
-import it.iterapp.app.common.routerTimeTodayAt
+import it.iterapp.app.common.routerTimeNextAt
 
 /**
  * "Leave now / Depart at HH:mm / Arrive by HH:mm" chip; opens
@@ -73,10 +73,14 @@ fun DepartureTimeChip(
       Icon(Icons.Rounded.Schedule, contentDescription = null, modifier = Modifier.size(18.dp))
       Spacer(Modifier.width(8.dp))
       Text(
+        // Router-zone clock: the label must echo exactly what was picked in
+        // the dialog, which also works on the router's wall clock.
         text = when {
           departureMs == null -> stringResource(R.string.planning_now)
-          arriveBy -> stringResource(R.string.planning_arrive_by_time, formatClock(departureMs))
-          else -> stringResource(R.string.planning_depart_at_time, formatClock(departureMs))
+          arriveBy ->
+            stringResource(R.string.planning_arrive_by_time, formatRouterClock(departureMs))
+          else ->
+            stringResource(R.string.planning_depart_at_time, formatRouterClock(departureMs))
         },
         style = MaterialTheme.typography.labelLarge,
       )
@@ -86,9 +90,9 @@ fun DepartureTimeChip(
 }
 
 /**
- * Depart-at / arrive-by picker for today, on the router's wall clock (the
- * plan endpoint interprets times there — see planDateTime). "Leave now"
- * clears back to live planning.
+ * Depart-at / arrive-by picker on the router's wall clock (the plan endpoint
+ * interprets times there — see planDateTime); a time already past rolls to
+ * its next occurrence. "Leave now" clears back to live planning.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,7 +146,7 @@ fun DepartureTimeDialog(
             Text(stringResource(R.string.action_cancel))
           }
           TextButton(
-            onClick = { onConfirm(routerTimeTodayAt(timeState.hour, timeState.minute), arriveBy) },
+            onClick = { onConfirm(routerTimeNextAt(timeState.hour, timeState.minute), arriveBy) },
           ) {
             Text(stringResource(R.string.action_ok))
           }
