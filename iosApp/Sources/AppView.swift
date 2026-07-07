@@ -126,6 +126,9 @@ struct AppView: View {
     let label = Image(systemName: "location")
       .font(.system(size: 17, weight: .semibold))
       .frame(width: 44, height: 44)
+    // Glass APIs need the iOS 26 SDK at build time too (Xcode 26 / Swift
+    // 6.2+); availability alone can't guard symbols older SDKs don't have.
+    #if compiler(>=6.2)
     if #available(iOS 26.0, *) {
       Button(action: locate) { label }
         .buttonStyle(.glass)
@@ -135,6 +138,11 @@ struct AppView: View {
         label.background(.regularMaterial, in: Circle())
       }
     }
+    #else
+    Button(action: locate) {
+      label.background(.regularMaterial, in: Circle())
+    }
+    #endif
   }
 
   private func locate() {
@@ -154,11 +162,15 @@ private struct ChromeIcon: View {
       .foregroundStyle(.primary)
       .frame(width: 44, height: 44)
       .contentShape(Circle())
+    #if compiler(>=6.2)
     if #available(iOS 26.0, *) {
       icon.glassEffect(in: Circle())
     } else {
       icon.background(.regularMaterial, in: Circle())
     }
+    #else
+    icon.background(.regularMaterial, in: Circle())
+    #endif
   }
 }
 
