@@ -4,16 +4,20 @@ import android.graphics.PointF
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -175,6 +179,8 @@ fun IterMapView(
 ) {
   val context = LocalContext.current
   val lifecycleOwner = LocalLifecycleOwner.current
+  val density = LocalDensity.current
+  val attributionTint = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
   var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
   val currentInset = remember { mutableIntStateOf(insetPx) }
   currentInset.intValue = insetPx
@@ -221,6 +227,19 @@ fun IterMapView(
       },
     factory = { mapView },
   )
+
+  // Attribution rides 12dp above the sheet edge at every anchor: the bottom
+  // margin compensates both the sheet coverage and the -inset/2 GPU
+  // translation of the view. Tint follows the theme.
+  LaunchedEffect(mapRef, attributionTint) {
+    val map = mapRef ?: return@LaunchedEffect
+    map.uiSettings.setAttributionTintColor(attributionTint)
+    val start = with(density) { 16.dp.roundToPx() }
+    val gap = with(density) { 12.dp.roundToPx() }
+    snapshotFlow { currentInset.intValue }.collect { inset ->
+      map.uiSettings.setAttributionMargins(start, 0, 0, inset / 2 + gap)
+    }
+  }
 
   // Style: (re)load when the URL changes, then re-apply overlays.
   LaunchedEffect(mapRef, styleUrl) {

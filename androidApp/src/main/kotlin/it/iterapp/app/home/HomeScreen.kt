@@ -384,7 +384,8 @@ private fun androidx.compose.foundation.layout.BoxScope.MapControls(
       Icon(Icons.Rounded.MyLocation, contentDescription = stringResourceSafe(R.string.map_my_location))
     }
   }
-  // Compass at bottom-start so its appearance never shifts the action column.
+  // Compass at bottom-start so its appearance never shifts the action column;
+  // raised to clear the attribution row riding the sheet edge below it.
   AnimatedVisibility(
     visible = kotlin.math.abs(camera.bearing) > 0.5,
     enter = fadeIn(),
@@ -392,7 +393,7 @@ private fun androidx.compose.foundation.layout.BoxScope.MapControls(
     modifier = Modifier
       .align(Alignment.BottomStart)
       .offset { IntOffset(0, -insetPx) }
-      .padding(start = 16.dp, bottom = 16.dp),
+      .padding(start = 16.dp, bottom = 56.dp),
   ) {
     SmallFloatingActionButton(
       onClick = { camera.resetNorth() },
