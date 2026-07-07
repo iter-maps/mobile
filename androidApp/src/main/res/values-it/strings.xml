@@ -15,6 +15,8 @@
   <string name="action_collapse">Comprimi</string>
   <string name="sheet_handle_cd">Maniglia del pannello</string>
   <string name="state_loading">Caricamento…</string>
+  <string name="state_expanded">Espanso</string>
+  <string name="state_collapsed">Compresso</string>
   <string name="error_network">Server non raggiungibile</string>
   <string name="error_generic">Qualcosa è andato storto</string>
   <string name="empty_results">Nessun risultato</string>

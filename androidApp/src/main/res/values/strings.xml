@@ -15,6 +15,8 @@
   <string name="action_collapse">Collapse</string>
   <string name="sheet_handle_cd">Sheet handle</string>
   <string name="state_loading">Loading…</string>
+  <string name="state_expanded">Expanded</string>
+  <string name="state_collapsed">Collapsed</string>
   <string name="error_network">Can\'t reach the server</string>
   <string name="error_generic">Something went wrong</string>
   <string name="empty_results">No results</string>

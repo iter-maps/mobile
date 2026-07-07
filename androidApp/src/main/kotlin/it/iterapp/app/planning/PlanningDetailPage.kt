@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,7 +23,11 @@ import it.iterapp.app.common.formatDistance
 import it.iterapp.app.common.formatDuration
 import it.iterapp.app.sheet.SheetPageHeader
 
-/** Leg-by-leg detail of the selected itinerary. */
+/**
+ * Leg-by-leg detail of the selected itinerary. Times lead the header — this
+ * is the execution surface: when do I leave, when do I arrive — while the
+ * results list stays duration-first for comparison.
+ */
 @Composable
 fun PlanningDetailPage(
   viewModel: PlanningViewModel,
@@ -30,9 +35,30 @@ fun PlanningDetailPage(
   modifier: Modifier = Modifier,
 ) {
   val selected by viewModel.selected.collectAsStateWithLifecycle()
-  val itinerary = selected ?: run {
-    onBack()
+  val fromEndpoint by viewModel.from.collectAsStateWithLifecycle()
+  val toEndpoint by viewModel.to.collectAsStateWithLifecycle()
+
+  val itinerary = selected
+  if (itinerary == null) {
+    // Selection can clear underneath this page (reset, replan); navigate out
+    // from an effect — composition must not call back synchronously.
+    LaunchedEffect(Unit) { onBack() }
     return
+  }
+
+  val originLabel = fromEndpoint?.let {
+    if (it.isUserLocation) {
+      stringResource(R.string.planning_my_location)
+    } else {
+      it.name.takeIf(String::isNotBlank)
+    }
+  }
+  val destinationLabel = toEndpoint?.let {
+    if (it.isUserLocation) {
+      stringResource(R.string.planning_my_location)
+    } else {
+      it.name.takeIf(String::isNotBlank)
+    }
   }
 
   Column(modifier.fillMaxSize()) {
@@ -46,20 +72,21 @@ fun PlanningDetailPage(
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(scroll)
-        .padding(horizontal = 20.dp),
+        .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
     ) {
       Row(modifier = Modifier.padding(bottom = 10.dp)) {
         Text(
           text = "${formatClock(itinerary.startMs)} – ${formatClock(itinerary.endMs)}",
           style = MaterialTheme.typography.titleLarge,
           fontWeight = FontWeight.SemiBold,
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.weight(1f).alignByBaseline(),
         )
         Text(
           text = formatDuration(itinerary.durationSeconds),
-          style = MaterialTheme.typography.titleLarge,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.primary,
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.alignByBaseline(),
         )
       }
       ItinerarySegments(itinerary, Modifier.padding(bottom = 10.dp))
@@ -85,7 +112,11 @@ fun PlanningDetailPage(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
-      LegTimeline(itinerary)
+      LegTimeline(
+        itinerary = itinerary,
+        originLabel = originLabel,
+        destinationLabel = destinationLabel,
+      )
     }
   }
 }
