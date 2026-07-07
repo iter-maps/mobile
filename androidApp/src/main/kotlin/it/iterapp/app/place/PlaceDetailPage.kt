@@ -63,11 +63,16 @@ fun PlaceDetailPage(
   LaunchedEffect(place.id) { viewModel.load(place) }
 
   Column(modifier.fillMaxSize()) {
-    SheetPageHeader(title = place.name, onBack = onBack)
+    val scroll = rememberScrollState()
+    SheetPageHeader(
+      title = place.name,
+      onBack = onBack,
+      scrolledUnder = scroll.canScrollBackward,
+    )
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .verticalScroll(rememberScrollState())
+        .verticalScroll(scroll)
         .padding(horizontal = 20.dp)
         .navigationBarsPadding(),
       verticalArrangement = Arrangement.spacedBy(12.dp),

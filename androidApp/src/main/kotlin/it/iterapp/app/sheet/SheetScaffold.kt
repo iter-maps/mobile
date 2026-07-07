@@ -1,9 +1,11 @@
 package it.iterapp.app.sheet
 
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -17,10 +19,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,25 +43,38 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.collapse
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.expand
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import it.iterapp.app.R
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 /**
  * Anchors of the universal sheet (ADR 0008): [Bottom] shows the page's peek,
- * [Half] leaves a map band above, [Full] is near-fullscreen, [Content] is a
- * content-fit height offered only when a page asks for it.
+ * [Half] leaves a map band above, [Full] leaves the status bar plus a
+ * constant 56dp map band, [Content] is a content-fit height offered only
+ * when a page asks for it.
  */
 enum class SheetAnchor { Bottom, Half, Full, Content }
 
 private const val HALF_FRACTION = 0.57f
-private const val FULL_FRACTION = 0.88f
 
-/** One soft spring for every movement — drag release, fling, page change. */
-private val SheetSpring: AnimationSpec<Float> = spring(dampingRatio = 0.82f, stiffness = 140f)
+/**
+ * One soft spring for every movement — drag release, fling, page change —
+ * shared with any content that must track the sheet (e.g. Home's
+ * gesture-clearance spacer), so the two motions can never drift apart.
+ */
+fun <T> sheetSpring(): SpringSpec<T> = spring(dampingRatio = 0.82f, stiffness = 140f)
+
+private val SheetSpring: AnimationSpec<Float> = sheetSpring()
 
 @Stable
 class SheetState(val draggable: AnchoredDraggableState<SheetAnchor>) {
@@ -99,7 +117,11 @@ fun SheetScaffold(
     val fullPx = constraints.maxHeight.toFloat()
     val peekPx = with(density) { peekHeight.toPx() }
     val halfVisible = fullPx * HALF_FRACTION
-    val fullVisible = fullPx * FULL_FRACTION
+    // Full leaves the status bar plus a constant 56dp map band, instead of a
+    // window-height fraction that crowded the status icons on short devices.
+    val statusBarPx = WindowInsets.statusBars.getTop(density).toFloat()
+    val fullVisible = (fullPx - statusBarPx - with(density) { 56.dp.toPx() })
+      .coerceAtLeast(halfVisible)
     val fullOffset = fullPx - fullVisible
 
     val anchors = remember(fullPx, peekPx, halfVisible, fullVisible, contentAnchorPx) {
@@ -138,6 +160,9 @@ fun SheetScaffold(
       shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
       color = MaterialTheme.colorScheme.surface,
       contentColor = MaterialTheme.colorScheme.onSurface,
+      // Matches the map FABs' default shadow so the lip stays visible over
+      // pale tiles; tonal elevation stays 0 to keep inner container contrast.
+      shadowElevation = 6.dp,
       modifier = Modifier
         .align(Alignment.TopStart)
         .fillMaxWidth()
@@ -150,7 +175,7 @@ fun SheetScaffold(
         .anchoredDraggable(state.draggable, Orientation.Vertical),
     ) {
       Column(Modifier.fillMaxSize()) {
-        DragHandle()
+        DragHandle(state)
         // Inset on the content, not the Surface: anchor math stays untouched
         // and at Full every page bottoms out above the gesture pill.
         Box(
@@ -227,11 +252,49 @@ private suspend fun settleToAnchor(state: AnchoredDraggableState<SheetAnchor>, v
   }
 }
 
+/**
+ * Tapping the handle steps the sheet up (or back to Half from Full), and the
+ * standard expand/collapse semantics make the sheet operable with TalkBack —
+ * drag gestures are otherwise its only control.
+ */
 @Composable
-private fun DragHandle() {
+private fun DragHandle(state: SheetState) {
+  val scope = rememberCoroutineScope()
+  val handleCd = stringResource(R.string.sheet_handle_cd)
+  val expandLabel = stringResource(R.string.action_expand)
+  val collapseLabel = stringResource(R.string.action_collapse)
+  val current = state.currentAnchor
+  val nextUp = when (current) {
+    SheetAnchor.Bottom -> SheetAnchor.Half
+    SheetAnchor.Half, SheetAnchor.Content -> SheetAnchor.Full
+    SheetAnchor.Full -> SheetAnchor.Half
+  }
+  val nextDown = if (current == SheetAnchor.Full) SheetAnchor.Half else SheetAnchor.Bottom
   Box(
     modifier = Modifier
       .fillMaxWidth()
+      .clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        onClickLabel = if (current == SheetAnchor.Full) collapseLabel else expandLabel,
+      ) {
+        scope.launch { state.animateTo(nextUp) }
+      }
+      .semantics {
+        contentDescription = handleCd
+        if (current != SheetAnchor.Full) {
+          expand(expandLabel) {
+            scope.launch { state.animateTo(nextUp) }
+            true
+          }
+        }
+        if (current != SheetAnchor.Bottom) {
+          collapse(collapseLabel) {
+            scope.launch { state.animateTo(nextDown) }
+            true
+          }
+        }
+      }
       .padding(vertical = 10.dp),
     contentAlignment = Alignment.Center,
   ) {

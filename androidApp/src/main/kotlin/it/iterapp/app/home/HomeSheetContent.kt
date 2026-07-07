@@ -44,6 +44,7 @@ import it.iterapp.app.common.SearchPillButton
 import it.iterapp.app.common.formatDistance
 import it.iterapp.app.common.formatStationName
 import it.iterapp.app.sheet.SheetSectionHeader
+import it.iterapp.app.sheet.sheetSpring
 import it.iterapp.core.model.SearchResult
 
 /**
@@ -122,6 +123,7 @@ fun HomeSheetContent(
       }
       val clearance by animateDpAsState(
         if (collapsed) gestureClearance else 0.dp,
+        animationSpec = sheetSpring(),
         label = "gestureClearance",
       )
       Spacer(Modifier.height(clearance))

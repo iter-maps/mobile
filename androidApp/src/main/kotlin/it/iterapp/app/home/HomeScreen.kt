@@ -208,7 +208,9 @@ fun HomeScreen() {
     156.dp
   }
 
-  // Remember the anchor each page was left at, so back restores the height.
+  // Remember the anchor each page was left at, so back restores the height;
+  // applied only when arriving via back — a fresh push must always open at
+  // the page's own anchor, not a stale collapsed one.
   val savedAnchors = remember { mutableStateMapOf<SheetPage, SheetAnchor>() }
   LaunchedEffect(Unit) {
     var prev = nav.current
@@ -230,7 +232,7 @@ fun HomeScreen() {
     } else {
       null
     },
-    openAnchor = savedAnchors[page] ?: page.openAnchor,
+    openAnchor = (if (nav.lastWasPop) savedAnchors[page] else null) ?: page.openAnchor,
     openKey = page,
     mapContent = {
       IterMapView(

@@ -36,11 +36,16 @@ fun PlanningDetailPage(
   }
 
   Column(modifier.fillMaxSize()) {
-    SheetPageHeader(title = stringResource(R.string.planning_detail_title), onBack = onBack)
+    val scroll = rememberScrollState()
+    SheetPageHeader(
+      title = stringResource(R.string.planning_detail_title),
+      onBack = onBack,
+      scrolledUnder = scroll.canScrollBackward,
+    )
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .verticalScroll(rememberScrollState())
+        .verticalScroll(scroll)
         .padding(horizontal = 20.dp),
     ) {
       Row(modifier = Modifier.padding(bottom = 10.dp)) {

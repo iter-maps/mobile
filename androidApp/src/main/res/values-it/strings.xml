@@ -10,6 +10,9 @@
   <string name="action_delete">Elimina</string>
   <string name="action_search">Cerca</string>
   <string name="action_clear">Cancella</string>
+  <string name="action_expand">Espandi</string>
+  <string name="action_collapse">Comprimi</string>
+  <string name="sheet_handle_cd">Maniglia del pannello</string>
   <string name="state_loading">Caricamento…</string>
   <string name="error_network">Server non raggiungibile</string>
   <string name="error_generic">Qualcosa è andato storto</string>

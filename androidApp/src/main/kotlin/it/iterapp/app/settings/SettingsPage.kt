@@ -44,11 +44,16 @@ fun SettingsPage(
   var originField by rememberSaveable(origin) { mutableStateOf(origin) }
 
   Column(modifier.fillMaxSize()) {
-    SheetPageHeader(title = stringResource(R.string.settings_title), onBack = onBack)
+    val scroll = rememberScrollState()
+    SheetPageHeader(
+      title = stringResource(R.string.settings_title),
+      onBack = onBack,
+      scrolledUnder = scroll.canScrollBackward,
+    )
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .verticalScroll(rememberScrollState())
+        .verticalScroll(scroll)
         .padding(horizontal = 20.dp),
     ) {
       SectionLabel(stringResource(R.string.settings_theme))
