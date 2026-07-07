@@ -165,7 +165,6 @@ fun SearchPage(
                   style = MaterialTheme.typography.bodySmall,
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                   maxLines = 1,
-                  modifier = Modifier.padding(start = 8.dp),
                 )
               }
             },

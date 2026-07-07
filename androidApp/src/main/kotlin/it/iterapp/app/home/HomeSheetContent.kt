@@ -190,11 +190,13 @@ fun HomeSheetContent(
               .semantics { contentDescription = locating },
           ) {
             repeat(3) {
+              // 64dp = the real station row (40dp icon + two text lines +
+              // 10dp vertical padding), so rows land without a jump.
               SkeletonBlock(
                 Modifier
                   .fillMaxWidth()
-                  .height(56.dp),
-                pulse,
+                  .height(64.dp),
+                pulse::value,
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
               )

@@ -31,6 +31,10 @@ class LocationProvider(private val context: Context) {
       ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
       PackageManager.PERMISSION_GRANTED
 
+  /** Whether the system location toggle is on; permission is separate. */
+  fun isLocationEnabled(): Boolean =
+    manager?.let { LocationManagerCompat.isLocationEnabled(it) } ?: false
+
   // All providers worth listening to: fused alone can sit silent (notably on
   // emulators), so gps/network run alongside and the freshest fix wins.
   private fun viableProviders(lm: LocationManager): List<String> = buildList {

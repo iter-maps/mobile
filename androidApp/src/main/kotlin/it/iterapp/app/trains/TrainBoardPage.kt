@@ -277,21 +277,21 @@ private fun BoardSkeletons() {
           .padding(horizontal = 16.dp, vertical = 10.dp),
       ) {
         Column {
-          SkeletonBlock(Modifier.size(width = 48.dp, height = 18.dp), pulse)
+          SkeletonBlock(Modifier.size(width = 48.dp, height = 18.dp), pulse::value)
           Spacer(Modifier.height(4.dp))
-          SkeletonBlock(Modifier.size(width = 40.dp, height = 10.dp), pulse)
+          SkeletonBlock(Modifier.size(width = 40.dp, height = 10.dp), pulse::value)
         }
         Column(Modifier.weight(1f).padding(start = 28.dp, end = 8.dp)) {
-          SkeletonBlock(Modifier.size(width = 72.dp, height = 10.dp), pulse)
+          SkeletonBlock(Modifier.size(width = 72.dp, height = 10.dp), pulse::value)
           Spacer(Modifier.height(4.dp))
           SkeletonBlock(
             Modifier
               .fillMaxWidth(0.7f)
               .height(16.dp),
-            pulse,
+            pulse::value,
           )
         }
-        SkeletonBlock(Modifier.size(width = 48.dp, height = 24.dp), pulse)
+        SkeletonBlock(Modifier.size(width = 48.dp, height = 24.dp), pulse::value)
       }
     }
   }

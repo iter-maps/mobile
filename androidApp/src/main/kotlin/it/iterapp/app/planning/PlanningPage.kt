@@ -287,17 +287,17 @@ private fun ItinerarySkeletons() {
           modifier = Modifier.padding(16.dp),
         ) {
           Row(verticalAlignment = Alignment.CenterVertically) {
-            SkeletonBlock(Modifier.size(width = 88.dp, height = 24.dp), pulse)
+            SkeletonBlock(Modifier.size(width = 88.dp, height = 24.dp), pulse::value)
             Spacer(Modifier.weight(1f))
-            SkeletonBlock(Modifier.size(width = 96.dp, height = 14.dp), pulse)
+            SkeletonBlock(Modifier.size(width = 96.dp, height = 14.dp), pulse::value)
           }
           SkeletonBlock(
             Modifier
               .fillMaxWidth()
               .height(30.dp),
-            pulse,
+            pulse::value,
           )
-          SkeletonBlock(Modifier.size(width = 180.dp, height = 12.dp), pulse)
+          SkeletonBlock(Modifier.size(width = 180.dp, height = 12.dp), pulse::value)
         }
       }
     }

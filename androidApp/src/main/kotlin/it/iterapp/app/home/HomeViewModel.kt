@@ -16,6 +16,7 @@ import it.iterapp.core.wire.StyleNames
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,9 @@ sealed interface NearbyUiState {
 /** Beyond this a station isn't "nearby" — better an honest empty section. */
 private const val NEARBY_MAX_METERS = 30_000.0
 
+/** How long Locating may pulse before admitting no fix is coming. */
+private const val NEARBY_LOCATING_TIMEOUT_MS = 20_000L
+
 class HomeViewModel(
   private val settings: IterSettings,
   private val locationProvider: LocationProvider,
@@ -72,7 +76,13 @@ class HomeViewModel(
 
   /** The closest rail stations, once a position is known — home's Nearby section. */
   private val _nearbyState = MutableStateFlow<NearbyUiState>(
-    if (locationProvider.hasPermission()) NearbyUiState.Locating else NearbyUiState.NoPermission,
+    // Locating only when a fix can actually arrive; with the system location
+    // toggle off, the "turn on location" guidance is the right state.
+    if (locationProvider.hasPermission() && locationProvider.isLocationEnabled()) {
+      NearbyUiState.Locating
+    } else {
+      NearbyUiState.NoPermission
+    },
   )
   val nearbyState: StateFlow<NearbyUiState> = _nearbyState
 
@@ -137,6 +147,14 @@ class HomeViewModel(
         )
       }
     }
+    // Watchdog: skeletons must not pulse forever when no provider ever
+    // produces a fix (indoors, GPS-only); a late fix still upgrades to Loaded.
+    viewModelScope.launch {
+      delay(NEARBY_LOCATING_TIMEOUT_MS)
+      if (_nearbyState.value is NearbyUiState.Locating) {
+        _nearbyState.value = NearbyUiState.Unavailable
+      }
+    }
   }
 
   fun onDarkThemeChange(dark: Boolean) {
@@ -145,7 +163,9 @@ class HomeViewModel(
 
   fun onLocationPermissionGranted() {
     locationEnabled.value = locationProvider.hasPermission()
-    if (locationEnabled.value && _nearbyState.value is NearbyUiState.NoPermission) {
+    if (locationEnabled.value && locationProvider.isLocationEnabled() &&
+      _nearbyState.value is NearbyUiState.NoPermission
+    ) {
       _nearbyState.value = NearbyUiState.Locating
     }
   }
