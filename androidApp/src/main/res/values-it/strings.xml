@@ -38,7 +38,9 @@
 
   <!-- Search -->
   <string name="search_placeholder">Cerca luoghi e indirizzi</string>
+  <string name="search_prompt">Cerca luoghi, indirizzi e stazioni</string>
   <string name="search_no_results">Nessun risultato</string>
+  <string name="search_no_results_hint">Controlla l\'ortografia o prova una ricerca più generica</string>
 
   <!-- Place detail -->
   <string name="place_directions">Indicazioni</string>

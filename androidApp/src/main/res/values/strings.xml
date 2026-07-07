@@ -38,7 +38,9 @@
 
   <!-- Search -->
   <string name="search_placeholder">Search places and addresses</string>
+  <string name="search_prompt">Search places, addresses and stations</string>
   <string name="search_no_results">Nothing found</string>
+  <string name="search_no_results_hint">Check the spelling or try a broader search</string>
 
   <!-- Place detail -->
   <string name="place_directions">Directions</string>

@@ -3,9 +3,12 @@ package it.iterapp.app.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.iterapp.app.location.LocationProvider
+import it.iterapp.core.geo.haversineMeters
+import it.iterapp.core.model.GeoPoint
 import it.iterapp.core.model.SearchResult
 import it.iterapp.core.repo.SearchRepository
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,29 +37,36 @@ class SearchViewModel(
   val error: StateFlow<Boolean> = _error
 
   val results: StateFlow<List<SearchResult>> = query
-    .debounce(300)
+    // Real queries debounce; clears and resets propagate immediately so no
+    // stale result list lingers under an emptied field.
+    .debounce { q -> if (q.trim().length < 2) 0L else 300L }
     .flatMapLatest { q ->
       flow {
         if (q.trim().length < 2) {
+          _error.value = false
           emit(emptyList())
           return@flow
         }
         _isSearching.value = true
         _error.value = false
-        try {
-          emit(
-            repository.search(
-              query = q.trim(),
-              lang = Locale.getDefault().language,
-              bias = locationProvider.lastKnown(),
-            ),
+        val bias = locationProvider.lastKnown()
+        // Only the fetch is guarded — emitting from a catch block violates
+        // flow exception transparency and can swallow cancellation.
+        val found = try {
+          repository.search(
+            query = q.trim(),
+            lang = Locale.getDefault().language,
+            bias = bias,
           )
-        } catch (e: Exception) {
-          _error.value = true
-          emit(emptyList())
-        } finally {
+        } catch (e: CancellationException) {
           _isSearching.value = false
+          throw e
+        } catch (_: Exception) {
+          _error.value = true
+          null
         }
+        _isSearching.value = false
+        emit(found?.withDistancesFrom(bias) ?: emptyList())
       }
     }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -70,3 +80,14 @@ class SearchViewModel(
     _error.value = false
   }
 }
+
+/**
+ * Fills [SearchResult.distanceM] from [origin] where the wire left it null
+ * (Photon only returns it on reverse lookups); wire-provided values win.
+ */
+internal fun List<SearchResult>.withDistancesFrom(origin: GeoPoint?): List<SearchResult> =
+  if (origin == null) {
+    this
+  } else {
+    map { r -> if (r.distanceM != null) r else r.copy(distanceM = haversineMeters(origin, r.point)) }
+  }

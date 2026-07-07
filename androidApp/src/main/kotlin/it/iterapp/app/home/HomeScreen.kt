@@ -308,6 +308,7 @@ fun HomeScreen() {
               searchViewModel.reset()
               nav.push(SheetPage.PlaceDetail(result))
             },
+            recentPlaces = recentPlaces,
           )
 
           is SheetPage.PlaceDetail -> PlaceDetailPage(
@@ -346,6 +347,7 @@ fun HomeScreen() {
               searchViewModel.reset()
               nav.pop()
             },
+            recentPlaces = recentPlaces,
             // Offered only with a fix in hand, so the row never no-ops.
             onMyLocation = if (userLocation != null) {
               {
