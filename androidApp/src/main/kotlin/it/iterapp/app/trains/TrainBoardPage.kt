@@ -34,7 +34,9 @@ import it.iterapp.app.R
 import it.iterapp.app.common.IconListRow
 import it.iterapp.app.common.SheetSearchField
 import it.iterapp.app.sheet.SheetPageHeader
-import it.iterapp.app.ui.theme.DelayColors
+import it.iterapp.app.ui.theme.delayColor
+import it.iterapp.app.ui.theme.delayEarlyColor
+import it.iterapp.app.ui.theme.delayOnTimeColor
 import it.iterapp.core.wire.BoardEntry
 
 /**
@@ -225,9 +227,10 @@ private fun BoardRow(entry: BoardEntry, showOrigin: Boolean) {
 private fun DelayLabel(delayMinutes: Int) {
   val (text, color) = when {
     delayMinutes > 0 -> stringResource(R.string.trains_delay_min, delayMinutes) to
-      DelayColors.forMinutes(delayMinutes)
-    delayMinutes < 0 -> stringResource(R.string.trains_early_min, -delayMinutes) to DelayColors.Early
-    else -> stringResource(R.string.trains_on_time) to DelayColors.OnTime
+      delayColor(delayMinutes)
+    delayMinutes < 0 -> stringResource(R.string.trains_early_min, -delayMinutes) to
+      delayEarlyColor()
+    else -> stringResource(R.string.trains_on_time) to delayOnTimeColor()
   }
   Text(
     text = text,

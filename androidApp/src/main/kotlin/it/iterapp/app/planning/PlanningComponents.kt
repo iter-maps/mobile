@@ -44,8 +44,8 @@ import it.iterapp.app.R
 import it.iterapp.app.common.LineBadge
 import it.iterapp.app.common.formatClock
 import it.iterapp.app.common.formatDelay
-import it.iterapp.app.ui.theme.DelayColors
 import it.iterapp.app.ui.theme.LineColors
+import it.iterapp.app.ui.theme.delayMinorColor
 import it.iterapp.app.ui.theme.lineColor
 import it.iterapp.core.model.Itinerary
 import it.iterapp.core.model.Leg
@@ -293,7 +293,7 @@ private fun LegRow(leg: Leg) {
           Text(
             text = stringResource(R.string.planning_usually_delayed, formatDelay(delay.p85Seconds)),
             style = MaterialTheme.typography.bodySmall,
-            color = DelayColors.Minor,
+            color = delayMinorColor(),
             modifier = Modifier.padding(top = 2.dp),
           )
         }

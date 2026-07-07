@@ -67,6 +67,16 @@
   <string name="planning_arrive_by">Arrive by</string>
   <string name="planning_depart_at">Depart at</string>
 
+  <!-- Line badge mode fallbacks -->
+  <string name="line_mode_bus">Bus</string>
+  <string name="line_mode_subway">Metro</string>
+  <string name="line_mode_tram">Tram</string>
+  <string name="line_mode_rail">Train</string>
+  <string name="line_mode_ferry">Ferry</string>
+  <string name="line_mode_funicular">Funicular</string>
+  <string name="line_mode_gondola">Cable car</string>
+  <string name="line_mode_other">Transit</string>
+
   <!-- Train boards -->
   <string name="trains_title">Train boards</string>
   <string name="trains_search_hint">Search a station</string>

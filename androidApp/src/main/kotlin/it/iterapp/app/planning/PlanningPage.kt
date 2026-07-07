@@ -296,9 +296,9 @@ private fun ReliabilityHint(itinerary: Itinerary) {
   val ranking = itinerary.ranking ?: return
   val (textRes, color) = when {
     ranking.reliabilityScore >= 0.8 ->
-      R.string.planning_reliability_high to it.iterapp.app.ui.theme.DelayColors.OnTime
+      R.string.planning_reliability_high to it.iterapp.app.ui.theme.delayOnTimeColor()
     ranking.reliabilityScore <= 0.35 ->
-      R.string.planning_reliability_low to it.iterapp.app.ui.theme.DelayColors.Severe
+      R.string.planning_reliability_low to it.iterapp.app.ui.theme.delaySevereColor()
     else -> return
   }
   Text(
