@@ -39,14 +39,17 @@ class HomeViewModel(
   private val trainsRepository: TrainsRepository,
 ) : ViewModel() {
 
-  /** Set by the UI on composition (isSystemInDarkTheme + theme setting). */
-  private val darkTheme = MutableStateFlow(false)
+  /** System dark flag from the UI; the theme setting is combined in [styleUrl]. */
+  private val systemDark = MutableStateFlow(false)
 
   /** Set by the UI once location permission is granted. */
   private val locationEnabled = MutableStateFlow(locationProvider.hasPermission())
 
   /** The place currently highlighted on the map (from search / tap). */
   val selectedPlace = MutableStateFlow<SearchResult?>(null)
+
+  /** One-shot guard for the launch camera move; survives recomposition, not process death. */
+  var initialCameraDone = false
 
   /** Places opened this session, most recent first (persistence is roadmapped). */
   private val _recentPlaces = MutableStateFlow<List<SearchResult>>(emptyList())
@@ -57,7 +60,14 @@ class HomeViewModel(
   val nearbyStations: StateFlow<List<NearbyStation>> = _nearbyStations
 
   val styleUrl: StateFlow<String> =
-    combine(settings.gatewayOrigin, settings.mapMode, darkTheme) { origin, mode, dark ->
+    combine(
+      settings.gatewayOrigin, settings.mapMode, settings.themeMode, systemDark,
+    ) { origin, mode, theme, sysDark ->
+      val dark = when (theme) {
+        ThemeMode.SYSTEM -> sysDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+      }
       val name = when (mode) {
         MapMode.STANDARD -> if (dark) StyleNames.DARK else StyleNames.LIGHT
         MapMode.TRANSIT -> if (dark) StyleNames.TRANSIT_DARK else StyleNames.TRANSIT_LIGHT
@@ -100,12 +110,7 @@ class HomeViewModel(
   }
 
   fun onDarkThemeChange(dark: Boolean) {
-    val mode = settings.themeMode.value
-    darkTheme.value = when (mode) {
-      ThemeMode.SYSTEM -> dark
-      ThemeMode.LIGHT -> false
-      ThemeMode.DARK -> true
-    }
+    systemDark.value = dark
   }
 
   fun onLocationPermissionGranted() {

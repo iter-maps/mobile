@@ -2,15 +2,19 @@ package it.iterapp.app.offline
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -126,8 +130,13 @@ private fun DownloadButton(
     shape = MaterialTheme.shapes.medium,
     modifier = Modifier.fillMaxWidth(),
   ) {
-    Icon(Icons.Rounded.CloudDownload, contentDescription = null)
-    Text(text = stringResource(label), modifier = Modifier.padding(start = 8.dp))
+    Icon(
+      Icons.Rounded.CloudDownload,
+      contentDescription = null,
+      modifier = Modifier.size(ButtonDefaults.IconSize),
+    )
+    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+    Text(text = stringResource(label))
   }
 }
 

@@ -7,6 +7,9 @@ import it.iterapp.core.model.LegMode
 /** Seed for the fallback tonal palette (docs/design/tokens.md). */
 val BrandSeed = Color(0xFF888FFA)
 
+/** brand.ink (docs/design/tokens.md) — badge ink, map identity accents. */
+val BrandInk = Color(0xFF4248C9)
+
 /**
  * Transit identity colors — semantic, palette-independent (ADR 0009). A GTFS
  * `route_color` always wins; these are category fallbacks.

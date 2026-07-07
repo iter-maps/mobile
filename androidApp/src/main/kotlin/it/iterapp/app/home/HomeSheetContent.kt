@@ -1,5 +1,6 @@
 package it.iterapp.app.home
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -30,14 +31,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import it.iterapp.app.R
 import it.iterapp.app.common.formatDistance
+import it.iterapp.app.common.formatStationName
+import it.iterapp.app.sheet.SheetSectionHeader
 import it.iterapp.core.model.SearchResult
 
 /**
@@ -58,6 +64,9 @@ fun HomeSheetContent(
   onRecent: (SearchResult) -> Unit,
   onStation: (NearbyStation) -> Unit,
   modifier: Modifier = Modifier,
+  onPeekContentHeight: (Int) -> Unit = {},
+  collapsed: Boolean = true,
+  gestureClearance: Dp = 0.dp,
 ) {
   Column(
     modifier = modifier
@@ -66,42 +75,58 @@ fun HomeSheetContent(
       .padding(horizontal = 16.dp),
     verticalArrangement = Arrangement.spacedBy(14.dp),
   ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      SearchPill(onClick = onSearch, modifier = Modifier.weight(1f))
-      Spacer(Modifier.width(10.dp))
-      AvatarButton(onClick = onSettings)
+    // The measured search+chips block defines the sheet's peek height; the
+    // animated clearance keeps it clear of the gesture bar while collapsed.
+    Column {
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .onSizeChanged { onPeekContentHeight(it.height) },
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+      ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          SearchPill(onClick = onSearch, modifier = Modifier.weight(1f))
+          Spacer(Modifier.width(10.dp))
+          AvatarButton(onClick = onSettings)
+        }
+
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          QuickChip(
+            icon = Icons.Rounded.Directions,
+            label = stringResource(R.string.home_quick_planning),
+            filled = true,
+            onClick = onDirections,
+          )
+          QuickChip(
+            icon = Icons.Rounded.Train,
+            label = stringResource(R.string.home_quick_boards),
+            filled = false,
+            onClick = onTrains,
+          )
+          QuickChip(
+            icon = Icons.Rounded.CloudDownload,
+            label = stringResource(R.string.home_quick_offline),
+            filled = false,
+            onClick = onOffline,
+          )
+        }
+      }
+      val clearance by animateDpAsState(
+        if (collapsed) gestureClearance else 0.dp,
+        label = "gestureClearance",
+      )
+      Spacer(Modifier.height(clearance))
     }
 
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .horizontalScroll(rememberScrollState()),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      QuickChip(
-        icon = Icons.Rounded.Directions,
-        label = stringResource(R.string.home_quick_planning),
-        filled = true,
-        onClick = onDirections,
-      )
-      QuickChip(
-        icon = Icons.Rounded.Train,
-        label = stringResource(R.string.home_quick_boards),
-        filled = false,
-        onClick = onTrains,
-      )
-      QuickChip(
-        icon = Icons.Rounded.CloudDownload,
-        label = stringResource(R.string.home_quick_offline),
-        filled = false,
-        onClick = onOffline,
-      )
-    }
-
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    HorizontalDivider()
 
     if (recentPlaces.isNotEmpty()) {
-      SectionHeader(stringResource(R.string.home_section_recents))
+      SheetSectionHeader(stringResource(R.string.home_section_recents))
       Row(
         modifier = Modifier
           .fillMaxWidth()
@@ -119,7 +144,7 @@ fun HomeSheetContent(
       }
     }
 
-    SectionHeader(stringResource(R.string.home_section_nearby))
+    SheetSectionHeader(stringResource(R.string.home_section_nearby))
     if (nearbyStations.isEmpty()) {
       Text(
         text = stringResource(R.string.home_nearby_empty),
@@ -143,7 +168,7 @@ fun HomeSheetContent(
 private fun SearchPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
   Surface(
     onClick = onClick,
-    shape = RoundedCornerShape(28.dp),
+    shape = MaterialTheme.shapes.extraLarge,
     color = MaterialTheme.colorScheme.surfaceContainerHighest,
     modifier = modifier.height(54.dp),
   ) {
@@ -225,19 +250,10 @@ private fun QuickChip(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
-  Text(
-    text = text,
-    style = MaterialTheme.typography.titleSmall,
-    color = MaterialTheme.colorScheme.onSurfaceVariant,
-  )
-}
-
-@Composable
 private fun StationRow(nearby: NearbyStation, onClick: () -> Unit) {
   Surface(
     onClick = onClick,
-    shape = RoundedCornerShape(16.dp),
+    shape = MaterialTheme.shapes.medium,
     color = MaterialTheme.colorScheme.surfaceContainerHigh,
     modifier = Modifier.fillMaxWidth(),
   ) {
@@ -261,7 +277,7 @@ private fun StationRow(nearby: NearbyStation, onClick: () -> Unit) {
       }
       Column(Modifier.weight(1f)) {
         Text(
-          text = nearby.station.name,
+          text = formatStationName(nearby.station.name),
           style = MaterialTheme.typography.titleSmall,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,

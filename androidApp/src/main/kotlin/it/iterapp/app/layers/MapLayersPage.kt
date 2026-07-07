@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import it.iterapp.app.R
+import it.iterapp.app.sheet.SheetSectionHeader
 import it.iterapp.core.settings.MapMode
 
 /** Compact basemap picker (content-fit sheet anchor, transient page). */
@@ -38,11 +39,7 @@ fun MapLayersPage(
       .padding(horizontal = 20.dp, vertical = 8.dp),
     verticalArrangement = Arrangement.spacedBy(10.dp),
   ) {
-    Text(
-      text = stringResource(R.string.layers_title),
-      style = MaterialTheme.typography.titleMedium,
-      fontWeight = FontWeight.SemiBold,
-    )
+    SheetSectionHeader(stringResource(R.string.layers_title))
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
       LayerChoice(
         icon = Icons.Rounded.Map,

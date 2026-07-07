@@ -13,12 +13,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -135,7 +138,6 @@ fun SheetScaffold(
       shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
       color = MaterialTheme.colorScheme.surface,
       contentColor = MaterialTheme.colorScheme.onSurface,
-      tonalElevation = 1.dp,
       modifier = Modifier
         .align(Alignment.TopStart)
         .fillMaxWidth()
@@ -149,7 +151,14 @@ fun SheetScaffold(
     ) {
       Column(Modifier.fillMaxSize()) {
         DragHandle()
-        Box(Modifier.fillMaxWidth().weight(1f)) { sheetContent() }
+        // Inset on the content, not the Surface: anchor math stays untouched
+        // and at Full every page bottoms out above the gesture pill.
+        Box(
+          Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .windowInsetsPadding(WindowInsets.navigationBars),
+        ) { sheetContent() }
       }
     }
   }

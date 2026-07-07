@@ -32,6 +32,22 @@ fun formatDistance(meters: Double): String = when {
   else -> String.format(Locale.getDefault(), "%.1f km", meters / 1000)
 }
 
+/**
+ * GTFS station names arrive ALL-CAPS ("MILANO PORTA VENEZIA"); title-case them
+ * for display, keeping short railway suffixes ("FS", "FN") intact. Mixed-case
+ * names pass through untouched, so the transform is idempotent and safe if the
+ * feed is ever fixed upstream. Locale pinned: default-locale lowercase would
+ * mangle "MILANO" on Turkish-locale devices.
+ */
+fun formatStationName(raw: String): String {
+  val name = raw.trim()
+  if (name != name.uppercase(Locale.ITALIAN)) return name
+  return name.split(" ").filter { it.isNotEmpty() }.joinToString(" ") { word ->
+    if (word.length <= 2) word
+    else word.lowercase(Locale.ITALIAN).replaceFirstChar { it.titlecase(Locale.ITALIAN) }
+  }
+}
+
 /** Seconds → compact `+3 min` / `+45 s` delay label. */
 fun formatDelay(seconds: Double): String {
   val s = seconds.roundToInt()

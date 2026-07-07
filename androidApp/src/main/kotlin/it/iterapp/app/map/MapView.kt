@@ -17,7 +17,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import it.iterapp.app.ui.theme.BrandInk
+import it.iterapp.app.ui.theme.LineColors
 import it.iterapp.core.model.GeoPoint
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -200,6 +203,10 @@ fun IterMapView(
       map.addOnCameraIdleListener {
         controller.bearing = map.cameraPosition.bearing
       }
+      // Live bearing during the rotation gesture, so the compass tracks the map.
+      map.addOnCameraMoveListener {
+        controller.bearing = map.cameraPosition.bearing
+      }
       mapRef = map
       controller.map = map
     }
@@ -261,7 +268,7 @@ private fun applyTransitOverlayLayers(style: Style) {
   ) {
     style.addLayer(
       LineLayer("iter-overlay-lines", "overlay-transit-lines").withProperties(
-        PropertyFactory.lineColor("#7B4EA3"),
+        PropertyFactory.lineColor(RAIL_HEX),
         PropertyFactory.lineWidth(2.5f),
         PropertyFactory.lineOpacity(0.75f),
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
@@ -276,12 +283,16 @@ private fun applyTransitOverlayLayers(style: Style) {
       CircleLayer("iter-overlay-stations", "overlay-metro-stations").withProperties(
         PropertyFactory.circleColor("#FFFFFF"),
         PropertyFactory.circleRadius(3.5f),
-        PropertyFactory.circleStrokeColor("#4248C9"),
+        PropertyFactory.circleStrokeColor(BRAND_INK_HEX),
         PropertyFactory.circleStrokeWidth(2f),
       ),
     )
   }
 }
+
+// Brand/category tokens as MapLibre hex strings (single source: ui/theme).
+private val BRAND_INK_HEX = colorHex(BrandInk.toArgb())
+private val RAIL_HEX = colorHex(LineColors.Rail.toArgb())
 
 private const val ROUTE_SOURCE = "iter-route"
 private const val ROUTE_CASING_LAYER = "iter-route-casing"
@@ -371,14 +382,14 @@ private fun applyOverlayLayers(
   if (style.getLayer(USER_DOT_LAYER) == null) {
     style.addLayer(
       CircleLayer(USER_HALO_LAYER, USER_SOURCE).withProperties(
-        PropertyFactory.circleColor("#4248C9"),
+        PropertyFactory.circleColor(BRAND_INK_HEX),
         PropertyFactory.circleOpacity(0.18f),
         PropertyFactory.circleRadius(18f),
       ),
     )
     style.addLayer(
       CircleLayer(USER_DOT_LAYER, USER_SOURCE).withProperties(
-        PropertyFactory.circleColor("#4248C9"),
+        PropertyFactory.circleColor(BRAND_INK_HEX),
         PropertyFactory.circleRadius(7f),
         PropertyFactory.circleStrokeColor("#FFFFFF"),
         PropertyFactory.circleStrokeWidth(2.5f),

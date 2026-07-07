@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
 import it.iterapp.app.sheet.SheetPageHeader
+import it.iterapp.app.sheet.SheetSectionHeader
 import it.iterapp.core.settings.MapMode
 import it.iterapp.core.settings.ThemeMode
 
@@ -140,10 +141,5 @@ fun SettingsPage(
 
 @Composable
 private fun SectionLabel(text: String) {
-  Text(
-    text = text,
-    style = MaterialTheme.typography.titleSmall,
-    color = MaterialTheme.colorScheme.primary,
-    modifier = Modifier.padding(top = 24.dp, bottom = 10.dp),
-  )
+  SheetSectionHeader(text, Modifier.padding(top = 24.dp, bottom = 10.dp))
 }

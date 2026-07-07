@@ -5,18 +5,28 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
@@ -25,11 +35,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +64,7 @@ import it.iterapp.app.search.SearchPage
 import it.iterapp.app.search.SearchViewModel
 import it.iterapp.app.settings.SettingsPage
 import it.iterapp.app.settings.SettingsViewModel
+import it.iterapp.app.sheet.SheetAnchor
 import it.iterapp.app.sheet.SheetNavigator
 import it.iterapp.app.sheet.SheetPage
 import it.iterapp.app.sheet.SheetScaffold
@@ -60,8 +74,6 @@ import it.iterapp.app.trains.TrainBoardViewModel
 import it.iterapp.app.ui.theme.LineColors
 import it.iterapp.app.ui.theme.lineColor
 import it.iterapp.core.model.Itinerary
-import it.iterapp.core.settings.MapMode
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -81,7 +93,6 @@ fun HomeScreen() {
   val nav = remember { SheetNavigator() }
   val sheetState = rememberSheetState()
   val camera = rememberMapCameraController()
-  val scope = rememberCoroutineScope()
 
   val styleUrl by homeViewModel.styleUrl.collectAsStateWithLifecycle()
   val userLocation by homeViewModel.userLocation.collectAsStateWithLifecycle()
@@ -132,12 +143,24 @@ fun HomeScreen() {
       camera.fitTo(itinerary.legs.flatMap { leg -> leg.geometry.ifEmpty { listOf(leg.from.point, leg.to.point) } })
     }
   }
+  // First launch lands on the user's area, never the world view — but only
+  // until the user or a selection has moved the camera.
+  LaunchedEffect(userLocation) {
+    val here = userLocation ?: return@LaunchedEffect
+    if (!camera.userMovedCamera && selectedPlace == null && selectedItinerary == null &&
+      !homeViewModel.initialCameraDone
+    ) {
+      homeViewModel.initialCameraDone = true
+      camera.animateTo(here, 12.0)
+    }
+  }
 
   val walkColor = LineColors.Walk.toArgb()
+  val placeColor = MaterialTheme.colorScheme.primary.toArgb()
   val routeLines = remember(selectedItinerary) {
     selectedItinerary?.toRouteLines(walkColor) ?: emptyList()
   }
-  val routeDots = remember(selectedItinerary, selectedPlace) {
+  val routeDots = remember(selectedItinerary, selectedPlace, placeColor) {
     buildList {
       selectedItinerary?.let { itinerary ->
         itinerary.legs.filter { it.isTransit }.forEach { leg ->
@@ -146,25 +169,50 @@ fun HomeScreen() {
           add(RouteDot(leg.to.point, color))
         }
       }
-      selectedPlace?.let { add(RouteDot(it.point, 0xFF5A5DE0.toInt(), radius = 7f)) }
+      selectedPlace?.let { add(RouteDot(it.point, placeColor, radius = 7f)) }
     }
   }
 
+  val density = LocalDensity.current
+  // Safe distance from the system gesture bar for collapsed-sheet content.
+  val gestureClearance = WindowInsets.navigationBars.asPaddingValues()
+    .calculateBottomPadding().coerceAtLeast(24.dp) + 12.dp
   val mapInset = remember { mutableIntStateOf(0) }
   val layersContentPx = remember { mutableFloatStateOf(0f) }
+  val peekContentPx = remember { mutableIntStateOf(0) }
   val page = nav.current
+
+  // Peek = drag handle + the measured search+chips block + gesture clearance;
+  // the 156dp fallback covers the first frame before measurement.
+  val computedPeek = if (peekContentPx.intValue > 0) {
+    24.dp + with(density) { peekContentPx.intValue.toDp() } + gestureClearance
+  } else {
+    156.dp
+  }
+
+  // Remember the anchor each page was left at, so back restores the height.
+  val savedAnchors = remember { mutableStateMapOf<SheetPage, SheetAnchor>() }
+  LaunchedEffect(Unit) {
+    var prev = nav.current
+    snapshotFlow { nav.current }.collect { cur ->
+      if (cur != prev) {
+        savedAnchors[prev] = sheetState.currentAnchor
+        prev = cur
+      }
+    }
+  }
 
   SheetScaffold(
     state = sheetState,
-    peekHeight = page.peek,
+    peekHeight = computedPeek,
     onMapInset = { mapInset.intValue = it },
-    contentAnchorPx = if (page is SheetPage.MapLayers) {
-      // handle + measured content + bottom clearance
-      layersContentPx.floatValue + 140f
+    contentAnchorPx = if (page is SheetPage.MapLayers && layersContentPx.floatValue > 0f) {
+      // drag handle (24dp) + measured content + gesture-bar clearance, in px
+      with(density) { (24.dp + gestureClearance).toPx() } + layersContentPx.floatValue
     } else {
       null
     },
-    openAnchor = page.openAnchor,
+    openAnchor = savedAnchors[page] ?: page.openAnchor,
     openKey = page,
     mapContent = {
       IterMapView(
@@ -199,8 +247,14 @@ fun HomeScreen() {
         targetState = page,
         transitionSpec = {
           val forward = !nav.lastWasPop
-          (slideInHorizontally { if (forward) it else -it })
-            .togetherWith(slideOutHorizontally { if (forward) -it else it })
+          val enter = slideInHorizontally(spring(dampingRatio = 0.9f, stiffness = 260f)) { w ->
+            if (forward) w else -w
+          } + fadeIn(spring(stiffness = 260f))
+          val exit = slideOutHorizontally(spring(dampingRatio = 0.9f, stiffness = 260f)) { w ->
+            if (forward) -w else w
+          } + fadeOut(spring(stiffness = 260f))
+          // The sheet's rounded Surface clips overflow; pages glide past bounds.
+          (enter togetherWith exit).using(SizeTransform(clip = false))
         },
         label = "sheet-page",
       ) { current ->
@@ -220,6 +274,9 @@ fun HomeScreen() {
             onStation = { nearby ->
               nav.push(SheetPage.TrainBoard(nearby.station.name, nearby.station.id))
             },
+            onPeekContentHeight = { peekContentPx.intValue = it },
+            collapsed = sheetState.draggable.targetValue == SheetAnchor.Bottom,
+            gestureClearance = gestureClearance,
           )
 
           SheetPage.Search -> SearchPage(
@@ -313,30 +370,41 @@ private fun androidx.compose.foundation.layout.BoxScope.MapControls(
     modifier = Modifier
       .align(Alignment.BottomEnd)
       .offset { IntOffset(0, -insetPx) }
-      .padding(end = 14.dp, bottom = 18.dp),
+      .padding(end = 16.dp, bottom = 16.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    SmallFloatingActionButton(
+    FloatingActionButton(
       onClick = onLayers,
-      containerColor = MaterialTheme.colorScheme.surface,
-      contentColor = MaterialTheme.colorScheme.onSurface,
+      containerColor = MaterialTheme.colorScheme.secondaryContainer,
+      contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
       Icon(Icons.Rounded.Layers, contentDescription = stringResourceSafe(R.string.layers_title))
     }
-    if (camera.bearing != 0.0) {
-      SmallFloatingActionButton(
-        onClick = { camera.resetNorth() },
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-      ) {
-        Icon(Icons.Rounded.Explore, contentDescription = stringResourceSafe(R.string.map_compass))
-      }
-    }
-    SmallFloatingActionButton(
-      onClick = onMyLocation,
-      containerColor = MaterialTheme.colorScheme.surface,
-      contentColor = MaterialTheme.colorScheme.primary,
-    ) {
+    FloatingActionButton(onClick = onMyLocation) {
       Icon(Icons.Rounded.MyLocation, contentDescription = stringResourceSafe(R.string.map_my_location))
+    }
+  }
+  // Compass at bottom-start so its appearance never shifts the action column.
+  AnimatedVisibility(
+    visible = kotlin.math.abs(camera.bearing) > 0.5,
+    enter = fadeIn(),
+    exit = fadeOut(),
+    modifier = Modifier
+      .align(Alignment.BottomStart)
+      .offset { IntOffset(0, -insetPx) }
+      .padding(start = 16.dp, bottom = 16.dp),
+  ) {
+    SmallFloatingActionButton(
+      onClick = { camera.resetNorth() },
+      containerColor = MaterialTheme.colorScheme.surface,
+      contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+      Icon(
+        Icons.Rounded.Explore,
+        contentDescription = stringResourceSafe(R.string.map_compass),
+        // -45 compensates the Explore needle's natural northeast orientation.
+        modifier = Modifier.graphicsLayer { rotationZ = -(camera.bearing + 45.0).toFloat() },
+      )
     }
   }
 }
@@ -351,20 +419,7 @@ private fun Itinerary.toRouteLines(walkColor: Int): List<RouteLine> =
     if (points.size < 2) return@mapNotNull null
     RouteLine(
       points = points,
-      color = if (leg.isTransit) {
-        android.graphics.Color.parseColor(
-          "#" + (leg.routeColor?.takeIf { it.length == 6 } ?: defaultHexFor(leg)),
-        )
-      } else {
-        walkColor
-      },
+      color = if (leg.isTransit) lineColor(leg.routeColor, leg.mode).toArgb() else walkColor,
       dashed = !leg.isTransit,
     )
   }
-
-private fun defaultHexFor(leg: it.iterapp.core.model.Leg): String = when (leg.mode) {
-  it.iterapp.core.model.LegMode.SUBWAY -> "0570B5"
-  it.iterapp.core.model.LegMode.TRAM -> "7A9E4E"
-  it.iterapp.core.model.LegMode.BUS -> "3E7CB1"
-  else -> "7B4EA3"
-}
