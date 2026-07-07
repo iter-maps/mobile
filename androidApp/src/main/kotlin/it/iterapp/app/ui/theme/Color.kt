@@ -22,6 +22,9 @@ object LineColors {
   val Night = Color(0xFF3F4358)
   val Walk = Color(0xFF5F6368)
 
+  /** Walk polyline on dark map tiles — [Walk] sits at ~2.5:1 there. */
+  val WalkOnDark = Color(0xFFB4BAC6)
+
   fun forMode(mode: LegMode): Color = when (mode) {
     LegMode.WALK, LegMode.BICYCLE, LegMode.CAR, LegMode.OTHER -> Walk
     LegMode.SUBWAY -> Metro

@@ -6,25 +6,34 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.LocationSearching
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -74,6 +83,7 @@ import it.iterapp.app.trains.TrainBoardViewModel
 import it.iterapp.app.ui.theme.LineColors
 import it.iterapp.app.ui.theme.lineColor
 import it.iterapp.core.model.Itinerary
+import it.iterapp.core.settings.ThemeMode
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -101,6 +111,7 @@ fun HomeScreen() {
   val nearbyStations by homeViewModel.nearbyStations.collectAsStateWithLifecycle()
   val selectedItinerary by planningViewModel.selected.collectAsStateWithLifecycle()
   val mapMode by settingsViewModel.mapMode.collectAsStateWithLifecycle()
+  val themeMode by settingsViewModel.themeMode.collectAsStateWithLifecycle()
 
   val dark = isSystemInDarkTheme()
   LaunchedEffect(dark) { homeViewModel.onDarkThemeChange(dark) }
@@ -155,9 +166,16 @@ fun HomeScreen() {
     }
   }
 
-  val walkColor = LineColors.Walk.toArgb()
+  // Walk polylines must contrast with the tiles, not the app surface; mirror
+  // the map-style darkness logic (in-app override, then system).
+  val mapDark = when (themeMode) {
+    ThemeMode.SYSTEM -> dark
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+  }
+  val walkColor = (if (mapDark) LineColors.WalkOnDark else LineColors.Walk).toArgb()
   val placeColor = MaterialTheme.colorScheme.primary.toArgb()
-  val routeLines = remember(selectedItinerary) {
+  val routeLines = remember(selectedItinerary, walkColor) {
     selectedItinerary?.toRouteLines(walkColor) ?: emptyList()
   }
   val routeDots = remember(selectedItinerary, selectedPlace, placeColor) {
@@ -240,6 +258,7 @@ fun HomeScreen() {
           homeViewModel.lastKnownLocation()?.let { camera.animateTo(it, 15.5) }
         },
         insetPx = mapInset.intValue,
+        located = userLocation != null,
       )
     },
     sheetContent = {
@@ -365,39 +384,74 @@ private fun androidx.compose.foundation.layout.BoxScope.MapControls(
   onLayers: () -> Unit,
   onMyLocation: () -> Unit,
   insetPx: Int,
+  located: Boolean,
 ) {
   Column(
     modifier = Modifier
       .align(Alignment.BottomEnd)
       .offset { IntOffset(0, -insetPx) }
+      .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
       .padding(end = 16.dp, bottom = 16.dp),
-    verticalArrangement = Arrangement.spacedBy(12.dp),
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
   ) {
-    FloatingActionButton(
+    // Layers is a low-frequency mode switch — small, above the primary FAB.
+    SmallFloatingActionButton(
       onClick = onLayers,
       containerColor = MaterialTheme.colorScheme.secondaryContainer,
       contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
       Icon(Icons.Rounded.Layers, contentDescription = stringResourceSafe(R.string.layers_title))
     }
-    FloatingActionButton(onClick = onMyLocation) {
-      Icon(Icons.Rounded.MyLocation, contentDescription = stringResourceSafe(R.string.map_my_location))
+    // My-location reflects whether a fix exists: muted crosshair while
+    // searching, filled container once located.
+    val locateContainer by animateColorAsState(
+      if (located) {
+        MaterialTheme.colorScheme.primaryContainer
+      } else {
+        MaterialTheme.colorScheme.surfaceContainerHighest
+      },
+      label = "locate-container",
+    )
+    val locateContent by animateColorAsState(
+      if (located) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+      } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+      },
+      label = "locate-content",
+    )
+    FloatingActionButton(
+      onClick = onMyLocation,
+      containerColor = locateContainer,
+      contentColor = locateContent,
+    ) {
+      Crossfade(located, label = "locate-icon") { l ->
+        Icon(
+          if (l) Icons.Rounded.MyLocation else Icons.Rounded.LocationSearching,
+          contentDescription = stringResourceSafe(R.string.map_my_location),
+        )
+      }
     }
   }
   // Compass at bottom-start so its appearance never shifts the action column;
   // raised to clear the attribution row riding the sheet edge below it.
+  // Bearing is normalized to [0, 360) — measure the angular distance to north.
+  val bearingNorm = ((camera.bearing % 360.0) + 360.0) % 360.0
+  val offNorthDeg = minOf(bearingNorm, 360.0 - bearingNorm)
   AnimatedVisibility(
-    visible = kotlin.math.abs(camera.bearing) > 0.5,
-    enter = fadeIn(),
-    exit = fadeOut(),
+    visible = offNorthDeg > 0.5,
+    enter = fadeIn() + scaleIn(spring(dampingRatio = 0.82f, stiffness = 260f), initialScale = 0.7f),
+    exit = fadeOut() + scaleOut(spring(dampingRatio = 0.82f, stiffness = 260f), targetScale = 0.7f),
     modifier = Modifier
       .align(Alignment.BottomStart)
       .offset { IntOffset(0, -insetPx) }
+      .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
       .padding(start = 16.dp, bottom = 56.dp),
   ) {
     SmallFloatingActionButton(
       onClick = { camera.resetNorth() },
-      containerColor = MaterialTheme.colorScheme.surface,
+      containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
       contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
       Icon(
