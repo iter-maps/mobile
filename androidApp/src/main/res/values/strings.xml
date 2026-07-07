@@ -11,6 +11,7 @@
   <string name="action_search">Search</string>
   <string name="action_clear">Clear</string>
   <string name="action_ok">OK</string>
+  <string name="action_refresh">Refresh</string>
   <string name="action_expand">Expand</string>
   <string name="action_collapse">Collapse</string>
   <string name="sheet_handle_cd">Sheet handle</string>
@@ -95,6 +96,7 @@
   <string name="trains_early_min">−%1$d min</string>
   <string name="trains_on_time">On time</string>
   <string name="trains_empty">No trains right now</string>
+  <string name="trains_board_stale">Offline — showing the last update</string>
   <string name="trains_search_prompt">Search a station to see live boards</string>
   <string name="trains_no_stations">No stations found</string>
 

@@ -1,23 +1,41 @@
 package it.iterapp.app.trains
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Train
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,7 +52,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
 import it.iterapp.app.common.IconListRow
 import it.iterapp.app.common.SheetSearchField
+import it.iterapp.app.common.SkeletonBlock
+import it.iterapp.app.common.formatStationName
+import it.iterapp.app.common.rememberSkeletonPulse
 import it.iterapp.app.sheet.SheetPageHeader
+import it.iterapp.app.sheet.SheetStatusMessage
 import it.iterapp.app.ui.theme.delayColor
 import it.iterapp.app.ui.theme.delayEarlyColor
 import it.iterapp.app.ui.theme.delayOnTimeColor
@@ -41,7 +64,8 @@ import it.iterapp.core.wire.BoardEntry
 
 /**
  * Live departures/arrivals. Station autocomplete first; boards poll at the
- * contract cadence while visible.
+ * contract cadence while visible, keeping the last good board through
+ * transient failures.
  */
 @Composable
 fun TrainBoardPage(
@@ -53,6 +77,8 @@ fun TrainBoardPage(
 ) {
   val query by viewModel.stationQuery.collectAsStateWithLifecycle()
   val stations by viewModel.stationResults.collectAsStateWithLifecycle()
+  val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+  val searchError by viewModel.searchError.collectAsStateWithLifecycle()
   val selected by viewModel.selectedStation.collectAsStateWithLifecycle()
   val tab by viewModel.tab.collectAsStateWithLifecycle()
   val board by viewModel.board.collectAsStateWithLifecycle()
@@ -80,10 +106,22 @@ fun TrainBoardPage(
   }
 
   Column(modifier.fillMaxSize()) {
+    val boardListState = rememberLazyListState()
     SheetPageHeader(
-      title = selected?.name ?: stringResource(R.string.trains_title),
+      title = selected?.name?.let(::formatStationName) ?: stringResource(R.string.trains_title),
       onBack = {
         if (selected != null) viewModel.selectStation(null) else onBack()
+      },
+      scrolledUnder = selected != null && boardListState.canScrollBackward,
+      trailing = {
+        if (selected != null) {
+          IconButton(onClick = viewModel::refresh) {
+            Icon(
+              Icons.Rounded.Refresh,
+              contentDescription = stringResource(R.string.action_refresh),
+            )
+          }
+        }
       },
     )
 
@@ -93,6 +131,7 @@ fun TrainBoardPage(
         onQueryChange = viewModel::onQueryChange,
         placeholder = stringResource(R.string.trains_search_hint),
         focusRequester = focusRequester,
+        isLoading = isSearching,
         modifier = Modifier
           .fillMaxWidth()
           .padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
@@ -107,7 +146,7 @@ fun TrainBoardPage(
         items(stations, key = { it.id }) { station ->
           IconListRow(
             icon = Icons.Rounded.Train,
-            title = station.name,
+            title = formatStationName(station.name),
             onClick = { viewModel.selectStation(station) },
           )
         }
@@ -120,9 +159,21 @@ fun TrainBoardPage(
               modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
             )
           }
+          searchError && query.length >= 2 && !isSearching -> item {
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 16.dp)) {
+              Text(
+                text = stringResource(R.string.error_network),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+              )
+              TextButton(onClick = viewModel::retryStationSearch) {
+                Text(stringResource(R.string.action_retry))
+              }
+            }
+          }
           // The >= 2 gate mirrors SearchPage and keeps the hint from flashing
           // during the station-search debounce.
-          stations.isEmpty() && query.length >= 2 -> item {
+          stations.isEmpty() && query.length >= 2 && !isSearching -> item {
             Text(
               text = stringResource(R.string.trains_no_stations),
               style = MaterialTheme.typography.bodyMedium,
@@ -133,51 +184,112 @@ fun TrainBoardPage(
         }
       }
     } else {
-      Row(
-        modifier = Modifier
+      SingleChoiceSegmentedButtonRow(
+        Modifier
           .fillMaxWidth()
           .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        FilterChip(
-          selected = tab == BoardTab.DEPARTURES,
-          onClick = { viewModel.setTab(BoardTab.DEPARTURES) },
-          label = { Text(stringResource(R.string.trains_departures)) },
-        )
-        FilterChip(
-          selected = tab == BoardTab.ARRIVALS,
-          onClick = { viewModel.setTab(BoardTab.ARRIVALS) },
-          label = { Text(stringResource(R.string.trains_arrivals)) },
-        )
+        BoardTab.entries.forEachIndexed { index, t ->
+          SegmentedButton(
+            selected = tab == t,
+            onClick = { viewModel.setTab(t) },
+            shape = SegmentedButtonDefaults.itemShape(index, BoardTab.entries.size),
+          ) {
+            Text(
+              stringResource(
+                when (t) {
+                  BoardTab.DEPARTURES -> R.string.trains_departures
+                  BoardTab.ARRIVALS -> R.string.trains_arrivals
+                },
+              ),
+            )
+          }
+        }
       }
 
-      when (val s = board) {
-        BoardState.Idle -> {}
-        BoardState.Loading -> Box(
-          Modifier.fillMaxWidth().padding(vertical = 32.dp),
-          contentAlignment = Alignment.Center,
-        ) { CircularProgressIndicator() }
-        BoardState.Error -> Text(
-          text = stringResource(R.string.error_network),
-          color = MaterialTheme.colorScheme.error,
-          modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-        )
-        is BoardState.Loaded -> {
-          if (s.entries.isEmpty()) {
-            Text(
-              text = stringResource(R.string.trains_empty),
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            )
-          } else {
-            LazyColumn(Modifier.fillMaxSize()) {
-              items(s.entries, key = { "${it.trainNumber}-${it.scheduledTime}" }) { entry ->
-                BoardRow(entry = entry, showOrigin = tab == BoardTab.ARRIVALS)
+      // Keyed by state class: poll updates refresh the list in place (scroll
+      // preserved); only Loading/Loaded/Error changes animate.
+      AnimatedContent(
+        targetState = board,
+        contentKey = { it::class },
+        transitionSpec = {
+          (fadeIn() togetherWith fadeOut()).using(SizeTransform(clip = false))
+        },
+        label = "board-state",
+      ) { s ->
+        when (s) {
+          BoardState.Idle -> {}
+          BoardState.Loading -> BoardSkeletons()
+          BoardState.Error -> SheetStatusMessage(
+            icon = Icons.Rounded.CloudOff,
+            message = stringResource(R.string.error_network),
+            action = {
+              FilledTonalButton(onClick = viewModel::refresh) {
+                Text(stringResource(R.string.action_retry))
+              }
+            },
+          )
+          is BoardState.Loaded -> {
+            if (s.entries.isEmpty()) {
+              SheetStatusMessage(
+                icon = Icons.Rounded.Train,
+                message = stringResource(R.string.trains_empty),
+              )
+            } else {
+              Column {
+                AnimatedVisibility(visible = s.stale) {
+                  Text(
+                    text = stringResource(R.string.trains_board_stale),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                  )
+                }
+                LazyColumn(
+                  state = boardListState,
+                  modifier = Modifier.fillMaxSize(),
+                  contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+                ) {
+                  items(s.entries, key = { "${it.trainNumber}-${it.scheduledTime}" }) { entry ->
+                    BoardRow(entry = entry, showOrigin = tab == BoardTab.ARRIVALS)
+                  }
+                }
               }
             }
           }
         }
+      }
+    }
+  }
+}
+
+@Composable
+private fun BoardSkeletons() {
+  val pulse = rememberSkeletonPulse()
+  Column(Modifier.padding(top = 4.dp)) {
+    repeat(6) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 10.dp),
+      ) {
+        Column {
+          SkeletonBlock(Modifier.size(width = 48.dp, height = 18.dp), pulse)
+          Spacer(Modifier.height(4.dp))
+          SkeletonBlock(Modifier.size(width = 40.dp, height = 10.dp), pulse)
+        }
+        Column(Modifier.weight(1f).padding(start = 28.dp, end = 8.dp)) {
+          SkeletonBlock(Modifier.size(width = 72.dp, height = 10.dp), pulse)
+          Spacer(Modifier.height(4.dp))
+          SkeletonBlock(
+            Modifier
+              .fillMaxWidth(0.7f)
+              .height(16.dp),
+            pulse,
+          )
+        }
+        SkeletonBlock(Modifier.size(width = 48.dp, height = 24.dp), pulse)
       }
     }
   }
@@ -189,24 +301,51 @@ private fun BoardRow(entry: BoardEntry, showOrigin: Boolean) {
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier
       .fillMaxWidth()
-      .padding(horizontal = 20.dp, vertical = 10.dp),
+      .padding(horizontal = 16.dp, vertical = 10.dp)
+      // One TalkBack node per departure instead of five loose fragments.
+      .semantics(mergeDescendants = true) {},
   ) {
-    Column(Modifier.width(64.dp)) {
+    Column(Modifier.widthIn(min = 64.dp)) {
       Text(
         text = entry.scheduledTime,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        softWrap = false,
       )
       DelayLabel(entry.delayMinutes)
     }
     Column(Modifier.weight(1f).padding(start = 12.dp, end = 8.dp)) {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        if (entry.category.isNotBlank()) {
+          Surface(
+            shape = MaterialTheme.shapes.extraSmall,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+          ) {
+            Text(
+              text = entry.category,
+              style = MaterialTheme.typography.labelSmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSecondaryContainer,
+              modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+            )
+          }
+          Spacer(Modifier.width(6.dp))
+        }
+        Text(
+          // trainNumber repeats the category ("REG 22815"); the badge owns it.
+          text = entry.trainNumber.removePrefix(entry.category).trim()
+            .ifEmpty { entry.trainNumber },
+          style = MaterialTheme.typography.labelMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
       Text(
-        text = entry.trainNumber,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-      Text(
-        text = if (showOrigin) entry.origin ?: "—" else entry.destination,
+        text = if (showOrigin) {
+          entry.origin?.let(::formatStationName) ?: "—"
+        } else {
+          formatStationName(entry.destination)
+        },
         style = MaterialTheme.typography.bodyLarge,
         fontWeight = FontWeight.Medium,
         maxLines = 1,
@@ -214,11 +353,19 @@ private fun BoardRow(entry: BoardEntry, showOrigin: Boolean) {
       )
     }
     entry.platform?.let {
-      Text(
-        text = stringResource(R.string.trains_platform, it),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
+      Surface(
+        shape = MaterialTheme.shapes.extraSmall,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+      ) {
+        Text(
+          text = stringResource(R.string.trains_platform, it),
+          style = MaterialTheme.typography.labelMedium,
+          fontWeight = FontWeight.SemiBold,
+          maxLines = 1,
+          softWrap = false,
+          modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
+      }
     }
   }
 }
@@ -237,5 +384,7 @@ private fun DelayLabel(delayMinutes: Int) {
     style = MaterialTheme.typography.labelSmall,
     fontWeight = FontWeight.Medium,
     color = color,
+    maxLines = 1,
+    softWrap = false,
   )
 }
