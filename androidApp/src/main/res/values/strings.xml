@@ -10,6 +10,7 @@
   <string name="action_delete">Delete</string>
   <string name="action_search">Search</string>
   <string name="action_clear">Clear</string>
+  <string name="action_ok">OK</string>
   <string name="action_expand">Expand</string>
   <string name="action_collapse">Collapse</string>
   <string name="sheet_handle_cd">Sheet handle</string>
@@ -69,6 +70,8 @@
   <string name="planning_stops_count">%1$d stops</string>
   <string name="planning_arrive_by">Arrive by</string>
   <string name="planning_depart_at">Depart at</string>
+  <string name="planning_arrive_by_time">Arrive by %1$s</string>
+  <string name="planning_depart_at_time">Depart at %1$s</string>
 
   <!-- Line badge mode fallbacks -->
   <string name="line_mode_bus">Bus</string>

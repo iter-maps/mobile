@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +33,8 @@ import it.iterapp.core.model.SearchResult
 
 /**
  * Full search page: pill text field with auto-focus, debounced results.
- * Also reused by the planning endpoint picker via [onPick].
+ * Also reused by the planning endpoint picker via [onPick]; the picker passes
+ * [onMyLocation] to pin a "My location" row above the results.
  */
 @Composable
 fun SearchPage(
@@ -41,6 +43,7 @@ fun SearchPage(
   onPick: (SearchResult) -> Unit,
   modifier: Modifier = Modifier,
   placeholder: String = stringResource(R.string.search_placeholder),
+  onMyLocation: (() -> Unit)? = null,
 ) {
   val query by viewModel.query.collectAsStateWithLifecycle()
   val results by viewModel.results.collectAsStateWithLifecycle()
@@ -77,6 +80,17 @@ fun SearchPage(
         .imePadding(),
       contentPadding = PaddingValues(vertical = 8.dp),
     ) {
+      if (onMyLocation != null && query.isBlank()) {
+        item {
+          IconListRow(
+            icon = Icons.Rounded.MyLocation,
+            title = stringResource(R.string.planning_my_location),
+            onClick = onMyLocation,
+            iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+          )
+        }
+      }
       items(results, key = { it.id }) { result ->
         IconListRow(
           icon = placeIcon(result),

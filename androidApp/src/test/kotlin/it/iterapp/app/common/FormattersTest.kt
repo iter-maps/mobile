@@ -23,4 +23,16 @@ class FormattersTest {
     assertEquals("45 s", formatDelay(45.0))
     assertEquals("3 min", formatDelay(180.0))
   }
+
+  @Test
+  fun routerTimeRoundTripsHourAndMinute() {
+    assertEquals(14 to 30, routerHourMinute(routerTimeTodayAt(14, 30)))
+    assertEquals(0 to 5, routerHourMinute(routerTimeTodayAt(0, 5)))
+  }
+
+  @Test
+  fun routerHourMinuteReadsRouterWallClock() {
+    // 2026-07-07T12:00:00Z is 14:00 in Europe/Rome (CEST).
+    assertEquals(14 to 0, routerHourMinute(1783425600000L))
+  }
 }

@@ -1,6 +1,7 @@
 package it.iterapp.app.common
 
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -53,6 +54,21 @@ fun formatDelay(seconds: Double): String {
   val s = seconds.roundToInt()
   return if (s >= 90) "${(s / 60.0).roundToInt()} min" else "$s s"
 }
+
+/** Hour and minute of [epochMs] on the router's wall clock. */
+fun routerHourMinute(epochMs: Long): Pair<Int, Int> {
+  val cal = Calendar.getInstance(ROUTER_ZONE).apply { timeInMillis = epochMs }
+  return cal.get(Calendar.HOUR_OF_DAY) to cal.get(Calendar.MINUTE)
+}
+
+/** Epoch millis of today at [hour]:[minute] on the router's wall clock. */
+fun routerTimeTodayAt(hour: Int, minute: Int): Long =
+  Calendar.getInstance(ROUTER_ZONE).apply {
+    set(Calendar.HOUR_OF_DAY, hour)
+    set(Calendar.MINUTE, minute)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+  }.timeInMillis
 
 /** OTP `YYYY-MM-DD` + `HH:MM` for a plan departure, in the router's zone. */
 fun planDateTime(epochMs: Long): Pair<String, String> {

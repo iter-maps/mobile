@@ -33,6 +33,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -64,6 +67,9 @@ fun PlanningPage(
   val profile by viewModel.profile.collectAsStateWithLifecycle()
   val state by viewModel.state.collectAsStateWithLifecycle()
   val selected by viewModel.selected.collectAsStateWithLifecycle()
+  val departureMs by viewModel.departureMs.collectAsStateWithLifecycle()
+  val arriveBy by viewModel.arriveBy.collectAsStateWithLifecycle()
+  var showTimeDialog by remember { mutableStateOf(false) }
 
   Column(modifier.fillMaxSize()) {
     SheetPageHeader(title = stringResource(R.string.planning_title), onBack = onBack)
@@ -105,6 +111,25 @@ fun PlanningPage(
           )
         }
       }
+    }
+
+    // When to leave: opens the depart-at / arrive-by picker.
+    DepartureTimeChip(
+      departureMs = departureMs,
+      arriveBy = arriveBy,
+      onClick = { showTimeDialog = true },
+      modifier = Modifier.padding(start = 16.dp, top = 10.dp),
+    )
+    if (showTimeDialog) {
+      DepartureTimeDialog(
+        initialMs = departureMs,
+        initialArriveBy = arriveBy,
+        onDismiss = { showTimeDialog = false },
+        onConfirm = { ms, arrive ->
+          showTimeDialog = false
+          viewModel.setDeparture(ms, arrive)
+        },
+      )
     }
 
     // Ranking profile chips.

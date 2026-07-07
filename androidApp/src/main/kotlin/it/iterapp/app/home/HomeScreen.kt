@@ -346,6 +346,16 @@ fun HomeScreen() {
               searchViewModel.reset()
               nav.pop()
             },
+            // Offered only with a fix in hand, so the row never no-ops.
+            onMyLocation = if (userLocation != null) {
+              {
+                planningViewModel.useMyLocation(current.from)
+                searchViewModel.reset()
+                nav.pop()
+              }
+            } else {
+              null
+            },
           )
 
           is SheetPage.TrainBoard -> TrainBoardPage(
