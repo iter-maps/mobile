@@ -374,6 +374,7 @@ fun HomeScreen() {
               nav.pop()
             },
             onContentHeight = { layersContentPx.floatValue = it.toFloat() },
+            onClose = { popCurrent() },
           )
 
           SheetPage.Offline -> OfflinePage(

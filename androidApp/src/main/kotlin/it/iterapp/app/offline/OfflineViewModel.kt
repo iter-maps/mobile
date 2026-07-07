@@ -8,6 +8,7 @@ import it.iterapp.core.offline.OfflineArea
 import it.iterapp.core.offline.OfflineRepository
 import it.iterapp.core.wire.ApiErrorCodes
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,6 +18,9 @@ sealed interface DownloadState {
   data object Idle : DownloadState
   data class Downloading(val bytesRead: Long, val total: Long?) : DownloadState
   data object Installing : DownloadState
+
+  /** Success confirmation, shown briefly before returning to [Idle]. */
+  data object Done : DownloadState
   data class Failed(val code: String?) : DownloadState
 }
 
@@ -41,8 +45,14 @@ class OfflineViewModel(
   }
 
   /** Downloads the given viewport bbox as a new offline area. */
-  fun downloadArea(bbox: String) {
+  fun downloadArea(bbox: String?) {
     if (_download.value is DownloadState.Downloading) return
+    // A null bbox (map not ready yet) surfaces as an invalid-area failure
+    // with a retry, instead of a button that silently eats the tap.
+    if (bbox == null) {
+      _download.value = DownloadState.Failed(ApiErrorCodes.BBOX_REQUIRED)
+      return
+    }
     // Pre-flight the server's area cap so an over-large viewport fails fast
     // with clear copy instead of a round-trip 413.
     if (exceedsAreaCap(bbox)) {
@@ -63,8 +73,10 @@ class OfflineViewModel(
             }
           }
         }
-        _download.value = DownloadState.Idle
+        _download.value = DownloadState.Done
         refresh()
+        delay(2_000)
+        if (_download.value is DownloadState.Done) _download.value = DownloadState.Idle
       } catch (e: IterApiException) {
         _download.value = DownloadState.Failed(e.code)
       } catch (e: Exception) {

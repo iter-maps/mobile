@@ -112,6 +112,10 @@
   <string name="offline_title">Mappe offline</string>
   <string name="offline_download_current">Scarica l\'area corrente</string>
   <string name="offline_downloading">Download… %1$s</string>
+  <string name="offline_downloading_of">Download… %1$s di %2$s</string>
+  <string name="offline_done">Area salvata</string>
+  <string name="offline_delete_title">Eliminare l\'area offline?</string>
+  <string name="offline_delete_area_cd">Elimina l\'area %1$s</string>
   <string name="offline_installing">Installazione…</string>
   <string name="offline_empty">Nessuna area offline</string>
   <string name="offline_error_too_large">Area troppo grande — avvicina lo zoom e riprova</string>
