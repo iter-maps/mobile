@@ -28,10 +28,13 @@
   <string name="home_quick_boards">Trains</string>
   <string name="home_quick_offline">Offline</string>
   <string name="home_quick_settings">Settings</string>
-  <string name="home_profile_cd">Settings</string>
+  <string name="home_settings_cd">Settings</string>
   <string name="home_section_recents">Recent</string>
   <string name="home_section_nearby">Nearby stations</string>
   <string name="home_nearby_empty">Turn on location to see stations around you</string>
+  <string name="home_nearby_locating">Finding stations near you…</string>
+  <string name="home_nearby_unavailable">Nearby stations aren\'t available right now</string>
+  <string name="home_nearby_none">No stations nearby</string>
 
   <!-- Search -->
   <string name="search_placeholder">Search places and addresses</string>

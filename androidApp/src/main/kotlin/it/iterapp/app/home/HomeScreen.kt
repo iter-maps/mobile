@@ -108,7 +108,7 @@ fun HomeScreen() {
   val userLocation by homeViewModel.userLocation.collectAsStateWithLifecycle()
   val selectedPlace by homeViewModel.selectedPlace.collectAsStateWithLifecycle()
   val recentPlaces by homeViewModel.recentPlaces.collectAsStateWithLifecycle()
-  val nearbyStations by homeViewModel.nearbyStations.collectAsStateWithLifecycle()
+  val nearbyState by homeViewModel.nearbyState.collectAsStateWithLifecycle()
   val selectedItinerary by planningViewModel.selected.collectAsStateWithLifecycle()
   val mapMode by settingsViewModel.mapMode.collectAsStateWithLifecycle()
   val themeMode by settingsViewModel.themeMode.collectAsStateWithLifecycle()
@@ -282,7 +282,7 @@ fun HomeScreen() {
         when (current) {
           SheetPage.Home -> HomeSheetContent(
             recentPlaces = recentPlaces,
-            nearbyStations = nearbyStations,
+            nearbyState = nearbyState,
             onSearch = { nav.push(SheetPage.Search) },
             onDirections = { nav.push(SheetPage.Planning) },
             onTrains = { nav.push(SheetPage.TrainBoard()) },
