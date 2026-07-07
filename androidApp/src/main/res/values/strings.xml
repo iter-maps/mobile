@@ -44,6 +44,9 @@
   <string name="place_phone">Phone</string>
   <string name="place_hours">Hours</string>
   <string name="place_wheelchair">Wheelchair access</string>
+  <string name="place_wheelchair_yes">Wheelchair accessible</string>
+  <string name="place_wheelchair_limited">Partially wheelchair accessible</string>
+  <string name="place_wheelchair_no">Not wheelchair accessible</string>
   <string name="place_photo_attribution">Photo: %1$s</string>
 
   <!-- Planning -->

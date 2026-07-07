@@ -44,6 +44,9 @@
   <string name="place_phone">Telefono</string>
   <string name="place_hours">Orari</string>
   <string name="place_wheelchair">Accessibilità</string>
+  <string name="place_wheelchair_yes">Accessibile in sedia a rotelle</string>
+  <string name="place_wheelchair_limited">Parzialmente accessibile</string>
+  <string name="place_wheelchair_no">Non accessibile</string>
   <string name="place_photo_attribution">Foto: %1$s</string>
 
   <!-- Planning -->
