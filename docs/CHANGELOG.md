@@ -93,3 +93,15 @@ sits under Unreleased until the first tag.
   polylines vanished on dark map tiles; compass wraparound at 360°; the
   detail page navigated back during composition when the selection cleared;
   Italian-locale decimal commas garbled offline-area coordinates.
+- Design pass 2 verification (multi-reviewer + adversarial verify): the
+  departure chip now echoes the picked router-zone time and past picks roll
+  to their next occurrence; back-to-back replans keep the dimmed list and
+  its cards genuinely disable; timeline departure clocks tint with the
+  wire's departure delay (newly mapped through the shared model) instead of
+  the arrival delay; manual board refresh updates the visible board in
+  place instead of blanking it, and outgoing rows keep their own tab's
+  labeling through the switch animation; empty search states no longer
+  flash during the debounce; enrichment retained for one place can no
+  longer animate out on another's card; skeleton pulses moved to the draw
+  phase (they recomposed whole screens per frame) and Nearby's locating
+  state gained a watchdog instead of pulsing forever without a fix.
