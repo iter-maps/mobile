@@ -43,6 +43,7 @@ class SearchViewModel(
     .flatMapLatest { q ->
       flow {
         if (q.trim().length < 2) {
+          _isSearching.value = false
           _error.value = false
           emit(emptyList())
           return@flow
@@ -72,11 +73,15 @@ class SearchViewModel(
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
   fun onQueryChange(value: String) {
+    // The spinner must cover the debounce window too, or the empty state
+    // flashes before the fetch even starts.
+    if (value.trim().length >= 2) _isSearching.value = true
     query.value = value
   }
 
   fun reset() {
     query.value = ""
+    _isSearching.value = false
     _error.value = false
   }
 }

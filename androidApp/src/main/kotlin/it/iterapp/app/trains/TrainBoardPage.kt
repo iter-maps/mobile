@@ -171,8 +171,8 @@ fun TrainBoardPage(
               }
             }
           }
-          // The >= 2 gate mirrors SearchPage and keeps the hint from flashing
-          // during the station-search debounce.
+          // isSearching covers the debounce window (set in onQueryChange),
+          // so the empty hint can't flash before the fetch starts.
           stations.isEmpty() && query.length >= 2 && !isSearching -> item {
             Text(
               text = stringResource(R.string.trains_no_stations),
@@ -251,7 +251,9 @@ fun TrainBoardPage(
                   contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
                 ) {
                   items(s.entries, key = { "${it.trainNumber}-${it.scheduledTime}" }) { entry ->
-                    BoardRow(entry = entry, showOrigin = tab == BoardTab.ARRIVALS)
+                    // s.forTab, not the outer tab: outgoing content must keep
+                    // its own labeling while it animates out after a switch.
+                    BoardRow(entry = entry, showOrigin = s.forTab == BoardTab.ARRIVALS)
                   }
                 }
               }

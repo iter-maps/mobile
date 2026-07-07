@@ -49,4 +49,22 @@ class BoardPollFlowTest {
     assertEquals(BoardState.Error, states[1])
     assertEquals(BoardState.Loaded(entries), states[2])
   }
+
+  @Test
+  fun seededRestartKeepsTheBoardThroughAFailedFetch() = runTest {
+    // Manual refresh while offline: no Loading, the seed survives as stale.
+    val entries = listOf(entry("22815"))
+    val states = boardPollFlow(pollMs = 1_000, initial = entries) {
+      throw RuntimeException("still down")
+    }.take(1).toList()
+    assertEquals(listOf(BoardState.Loaded(entries, stale = true)), states)
+  }
+
+  @Test
+  fun seededRestartRefreshesInPlace() = runTest {
+    val old = listOf(entry("22815"))
+    val fresh = listOf(entry("664"))
+    val states = boardPollFlow(pollMs = 1_000, initial = old) { fresh }.take(1).toList()
+    assertEquals(listOf(BoardState.Loaded(fresh)), states)
+  }
 }
