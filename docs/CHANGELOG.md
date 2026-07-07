@@ -32,6 +32,18 @@ sits under Unreleased until the first tag.
 - CI: Android build/test/lint + shared iOS klib type-check on Linux, unsigned
   simulator build on macOS, REUSE lint.
 
+### Changed
+
+- Design restoration pass: real brand assets (wordmark, launcher icon), the
+  brand tonal palette by default with Material You opt-in (ADR 0013), the
+  home sheet rebuilt in the product's design language (search pill + avatar,
+  quick chips, session recents, nearby stations), and a 44-finding design
+  polish across the shell (measured peek, tonal map FABs, live compass,
+  anchor memory, initial camera on the user's area), planning (duration-first
+  cards, labeled segments, icon-led fields, richer leg timeline), search
+  (category icons), boards (pill station picker, restructured rows) and
+  place pages.
+
 ### Fixed
 
 - Verification pass 1 (shared core vs the published contract): tolerate the
