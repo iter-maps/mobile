@@ -179,7 +179,7 @@ fun HomeSheetContent(
       )
       when (nearbyState) {
         NearbyUiState.NoPermission -> NearbyCaption(stringResource(R.string.home_nearby_empty))
-        NearbyUiState.Unavailable -> NearbyCaption(stringResource(R.string.home_nearby_unavailable))
+        is NearbyUiState.Unavailable -> NearbyCaption(stringResource(R.string.home_nearby_unavailable))
         NearbyUiState.Locating -> {
           val locating = stringResource(R.string.home_nearby_locating)
           val pulse = rememberSkeletonPulse()

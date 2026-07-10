@@ -19,4 +19,7 @@ class SettingsViewModel(
   fun setDynamicColor(enabled: Boolean) = settings.setDynamicColor(enabled)
   fun setMapMode(mode: MapMode) = settings.setMapMode(mode)
   fun setGatewayOrigin(origin: String) = settings.setGatewayOrigin(origin)
+
+  /** Clears the first-run flag so the intro shows again (minimal onboarding). */
+  fun replayOnboarding() = settings.setOnboardingSeen(false)
 }

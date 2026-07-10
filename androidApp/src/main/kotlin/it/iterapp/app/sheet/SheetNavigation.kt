@@ -64,6 +64,11 @@ sealed interface SheetPage {
   data object Settings : SheetPage {
     override val openAnchor = SheetAnchor.Full
   }
+
+  /** "About the map": map-data attribution (ODbL) and open-source credits. */
+  data object MapAbout : SheetPage {
+    override val openAnchor = SheetAnchor.Full
+  }
 }
 
 /** Observable back-stack of sheet pages. */

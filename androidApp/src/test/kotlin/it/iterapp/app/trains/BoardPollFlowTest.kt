@@ -1,5 +1,6 @@
 package it.iterapp.app.trains
 
+import it.iterapp.core.api.AppFailure
 import it.iterapp.core.wire.BoardEntry
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,7 +36,7 @@ class BoardPollFlowTest {
   fun firstFetchFailureIsAnError() = runTest {
     val states = boardPollFlow(pollMs = 1_000) { throw RuntimeException("down") }
       .take(2).toList()
-    assertEquals(listOf(BoardState.Loading, BoardState.Error), states)
+    assertEquals(listOf(BoardState.Loading, BoardState.Error(AppFailure.Unknown)), states)
   }
 
   @Test
@@ -46,7 +47,7 @@ class BoardPollFlowTest {
       calls++
       if (calls == 1) throw RuntimeException("down") else entries
     }.take(3).toList()
-    assertEquals(BoardState.Error, states[1])
+    assertEquals(BoardState.Error(AppFailure.Unknown), states[1])
     assertEquals(BoardState.Loaded(entries), states[2])
   }
 

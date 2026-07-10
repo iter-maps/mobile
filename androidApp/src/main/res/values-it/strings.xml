@@ -19,6 +19,19 @@
   <string name="error_network">Server non raggiungibile</string>
   <string name="error_generic">Qualcosa è andato storto</string>
 
+  <!-- Stati di errore tipizzati (AppFailure) -->
+  <string name="error_offline_title">Sei offline</string>
+  <string name="error_offline_hint">Riconnettiti per pianificare i viaggi e vedere gli orari in tempo reale</string>
+  <string name="error_offline_zones_hint">Le mappe scaricate funzionano ancora — pianificazione e orari live richiedono una connessione</string>
+  <string name="error_unreachable_title">Iter Maps non è raggiungibile</string>
+  <string name="error_unreachable_hint">Il server non risponde. Riprova tra un momento.</string>
+  <string name="error_timeout_title">Ci sta mettendo troppo</string>
+  <string name="error_timeout_hint">La connessione è lenta al momento. Riprova.</string>
+  <string name="error_busy_title">Server occupato</string>
+  <string name="error_busy_hint">Troppe richieste in questo momento — riprova tra poco.</string>
+  <string name="error_not_found_title">Nessun risultato</string>
+  <string name="error_generic_hint">Si è verificato un errore imprevisto. Riprova.</string>
+
   <!-- Home sheet -->
   <string name="home_search_hint">Dove andiamo?</string>
   <string name="home_quick_planning">Indicazioni</string>
@@ -134,10 +147,38 @@
   <string name="settings_server_desc">Il server Iter Maps usato dall\'app</string>
   <string name="settings_server_save">Applica</string>
 
+  <!-- Sezioni impostazioni -->
+  <string name="settings_appearance">Aspetto</string>
+  <string name="settings_map_location">Mappa e posizione</string>
+  <string name="settings_offline">Mappe offline</string>
+  <string name="settings_about">Informazioni e note legali</string>
+  <string name="settings_version">Versione</string>
+  <string name="settings_attribution">Dati mappa e attribuzione</string>
+  <string name="settings_licenses">Licenze open source</string>
+  <string name="settings_help">Aiuto</string>
+  <string name="settings_replay_onboarding">Rivedi introduzione</string>
+  <string name="settings_replay_onboarding_desc">Mostra di nuovo le schermate di benvenuto al prossimo avvio</string>
+  <string name="settings_advanced">Avanzate</string>
+  <string name="settings_permission">Permesso di posizione</string>
+  <string name="settings_permission_granted">Concesso</string>
+  <string name="settings_permission_denied">Tocca per abilitare nelle impostazioni di sistema</string>
+
+  <!-- Informazioni sulla mappa / attribuzione -->
+  <string name="attribution_data_title">Dati mappa</string>
+  <string name="attribution_osm">© contributori OpenStreetMap</string>
+  <string name="attribution_osm_desc">I dati della mappa sono disponibili con licenza Open Database License (ODbL). Tocca per vedere la licenza.</string>
+  <string name="attribution_openmaptiles">© OpenMapTiles</string>
+  <string name="attribution_openmaptiles_desc">Schema dei vector tile del progetto OpenMapTiles.</string>
+  <string name="attribution_render">Renderizzato con MapLibre</string>
+  <string name="attribution_render_desc">Le mappe sono disegnate sul dispositivo con il renderer open-source MapLibre.</string>
+  <string name="attribution_licenses_desc">Iter Maps è realizzato con software open source, tra cui MapLibre, Ktor, Koin, Coil e Jetpack Compose.</string>
+
   <!-- Map layers -->
   <string name="layers_title">Stile mappa</string>
 
   <!-- Map controls -->
   <string name="map_compass">Punta a nord</string>
   <string name="map_my_location">La mia posizione</string>
+  <string name="map_offline_chip">Offline — mappa scaricata</string>
+  <string name="map_credit_osm">© OpenStreetMap</string>
 </resources>

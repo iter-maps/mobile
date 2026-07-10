@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.SearchOff
@@ -33,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
+import it.iterapp.app.common.FailureMessage
 import it.iterapp.app.common.IconListRow
 import it.iterapp.app.common.SheetSearchField
 import it.iterapp.app.common.formatDistance
@@ -60,7 +60,7 @@ fun SearchPage(
   val query by viewModel.query.collectAsStateWithLifecycle()
   val results by viewModel.results.collectAsStateWithLifecycle()
   val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
-  val error by viewModel.error.collectAsStateWithLifecycle()
+  val failure by viewModel.failure.collectAsStateWithLifecycle()
   val focusRequester = remember { FocusRequester() }
   val listState = rememberLazyListState()
   val keyboard = LocalSoftwareKeyboardController.current
@@ -171,10 +171,10 @@ fun SearchPage(
           )
         }
         when {
-          error && !isSearching -> item {
-            SheetStatusMessage(
-              icon = Icons.Rounded.CloudOff,
-              message = stringResource(R.string.error_network),
+          failure != null && !isSearching -> item {
+            FailureMessage(
+              failure = failure!!,
+              onRetry = viewModel::retry,
             )
           }
           results.isEmpty() && !isSearching -> item {

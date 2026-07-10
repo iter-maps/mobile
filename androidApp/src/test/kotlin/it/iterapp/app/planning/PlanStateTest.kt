@@ -1,5 +1,6 @@
 package it.iterapp.app.planning
 
+import it.iterapp.core.api.AppFailure
 import it.iterapp.core.model.Itinerary
 import kotlin.test.Test
 import kotlin.test.assertNull
@@ -24,6 +25,6 @@ class PlanStateTest {
   fun keepsNothingOtherwise() {
     assertNull(keptItineraries(PlanState.Idle))
     assertNull(keptItineraries(PlanState.Loading(previous = null)))
-    assertNull(keptItineraries(PlanState.Error(network = true)))
+    assertNull(keptItineraries(PlanState.Failure(AppFailure.ServerUnreachable())))
   }
 }

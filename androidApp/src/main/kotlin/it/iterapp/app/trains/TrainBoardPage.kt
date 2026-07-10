@@ -23,10 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Train
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +33,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
+import it.iterapp.app.common.FailureMessage
 import it.iterapp.app.common.IconListRow
 import it.iterapp.app.common.SheetSearchField
 import it.iterapp.app.common.SkeletonBlock
@@ -57,6 +55,7 @@ import it.iterapp.app.common.formatStationName
 import it.iterapp.app.common.rememberSkeletonPulse
 import it.iterapp.app.sheet.SheetPageHeader
 import it.iterapp.app.sheet.SheetStatusMessage
+import it.iterapp.core.api.AppFailure
 import it.iterapp.app.ui.theme.delayColor
 import it.iterapp.app.ui.theme.delayEarlyColor
 import it.iterapp.app.ui.theme.delayOnTimeColor
@@ -78,7 +77,7 @@ fun TrainBoardPage(
   val query by viewModel.stationQuery.collectAsStateWithLifecycle()
   val stations by viewModel.stationResults.collectAsStateWithLifecycle()
   val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
-  val searchError by viewModel.searchError.collectAsStateWithLifecycle()
+  val searchFailure by viewModel.searchFailure.collectAsStateWithLifecycle()
   val selected by viewModel.selectedStation.collectAsStateWithLifecycle()
   val tab by viewModel.tab.collectAsStateWithLifecycle()
   val board by viewModel.board.collectAsStateWithLifecycle()
@@ -159,17 +158,11 @@ fun TrainBoardPage(
               modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
             )
           }
-          searchError && query.length >= 2 && !isSearching -> item {
-            Column(Modifier.padding(horizontal = 8.dp, vertical = 16.dp)) {
-              Text(
-                text = stringResource(R.string.error_network),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-              )
-              TextButton(onClick = viewModel::retryStationSearch) {
-                Text(stringResource(R.string.action_retry))
-              }
-            }
+          searchFailure != null && query.length >= 2 && !isSearching -> item {
+            FailureMessage(
+              failure = searchFailure!!,
+              onRetry = viewModel::retryStationSearch,
+            )
           }
           // isSearching covers the debounce window (set in onQueryChange),
           // so the empty hint can't flash before the fetch starts.
@@ -220,14 +213,9 @@ fun TrainBoardPage(
         when (s) {
           BoardState.Idle -> {}
           BoardState.Loading -> BoardSkeletons()
-          BoardState.Error -> SheetStatusMessage(
-            icon = Icons.Rounded.CloudOff,
-            message = stringResource(R.string.error_network),
-            action = {
-              FilledTonalButton(onClick = viewModel::refresh) {
-                Text(stringResource(R.string.action_retry))
-              }
-            },
+          is BoardState.Error -> FailureMessage(
+            failure = s.failure ?: AppFailure.Unknown,
+            onRetry = viewModel::refresh,
           )
           is BoardState.Loaded -> {
             if (s.entries.isEmpty()) {

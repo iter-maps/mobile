@@ -3,9 +3,13 @@ package it.iterapp.app.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.iterapp.app.location.LocationProvider
+import it.iterapp.core.api.AppFailure
+import it.iterapp.core.api.toAppFailure
 import it.iterapp.core.geo.haversineMeters
 import it.iterapp.core.model.GeoPoint
+import it.iterapp.core.net.Connectivity
 import it.iterapp.core.model.SearchResult
+import it.iterapp.core.offline.OfflineRepository
 import it.iterapp.core.repo.SearchRepository
 import it.iterapp.core.repo.TrainsRepository
 import it.iterapp.core.settings.IterSettings
@@ -14,6 +18,7 @@ import it.iterapp.core.settings.ThemeMode
 import it.iterapp.core.wire.Station
 import it.iterapp.core.wire.StyleNames
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -42,7 +48,9 @@ sealed interface NearbyUiState {
   data object NoPermission : NearbyUiState
   data object Locating : NearbyUiState
   data class Loaded(val stations: List<NearbyStation>) : NearbyUiState
-  data object Unavailable : NearbyUiState
+
+  /** [failure] carries the typed cause when a fetch failed (null on timeout). */
+  data class Unavailable(val failure: AppFailure? = null) : NearbyUiState
 }
 
 /** Beyond this a station isn't "nearby" — better an honest empty section. */
@@ -56,10 +64,21 @@ class HomeViewModel(
   private val locationProvider: LocationProvider,
   private val searchRepository: SearchRepository,
   private val trainsRepository: TrainsRepository,
+  private val connectivity: Connectivity,
+  private val offlineRepository: OfflineRepository,
 ) : ViewModel() {
 
   /** System dark flag from the UI; the theme setting is combined in [styleUrl]. */
   private val systemDark = MutableStateFlow(false)
+
+  /** Device reachability, for offline-fallback and failure classification. */
+  val isOnline: StateFlow<Boolean> = connectivity.isOnline
+
+  /** Latest map center, pushed from the UI, to pick an offline area that covers it. */
+  private val mapCenter = MutableStateFlow<GeoPoint?>(null)
+
+  /** Re-runs the Nearby fetch (retry after an Unavailable state). */
+  private val nearbyRetryTick = MutableStateFlow(0)
 
   /** Set by the UI once location permission is granted. */
   private val locationEnabled = MutableStateFlow(locationProvider.hasPermission())
@@ -109,6 +128,39 @@ class HomeViewModel(
       "${settings.gatewayOrigin.value}/styles/${StyleNames.LIGHT}.json",
     )
 
+  /**
+   * When the device is offline and a downloaded area covers the map center,
+   * the `file://` style URL of that area for the active style name; null
+   * otherwise (the UI then falls back to the live [styleUrl]). Keeps offline
+   * zones useful the moment the network drops (ADR 0015).
+   */
+  val offlineStyleUrl: StateFlow<String?> =
+    combine(
+      connectivity.isOnline, mapCenter, settings.mapMode, settings.themeMode, systemDark,
+    ) { online, center, mode, theme, sysDark ->
+      if (online || center == null) return@combine null
+      val dark = when (theme) {
+        ThemeMode.SYSTEM -> sysDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+      }
+      val name = when (mode) {
+        MapMode.STANDARD -> if (dark) StyleNames.DARK else StyleNames.LIGHT
+        MapMode.TRANSIT -> if (dark) StyleNames.TRANSIT_DARK else StyleNames.TRANSIT_LIGHT
+      }
+      offlineStyleFor(center, name)
+    }.flowOn(Dispatchers.IO)
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+  /** The style URL of an installed area whose bbox covers [center] and that
+   *  ships [styleName]; null when none does. */
+  private fun offlineStyleFor(center: GeoPoint, styleName: String): String? =
+    offlineRepository.list().firstOrNull { area ->
+      val b = area.manifest.bbox
+      b.size >= 4 && center.lon in b[0]..b[2] && center.lat in b[1]..b[3] &&
+        styleName in area.manifest.styles
+    }?.styleUrl(styleName)
+
   @OptIn(ExperimentalCoroutinesApi::class)
   val userLocation: StateFlow<GeoPoint?> = locationEnabled
     .flatMapLatest { enabled ->
@@ -123,13 +175,13 @@ class HomeViewModel(
       // Stations are fetched once (retried on later fixes until the fetch
       // lands); distances re-rank on every fix so they never freeze at the
       // session's first position while the user rides away from it.
-      userLocation.filterNotNull().collect { here ->
+      combine(userLocation.filterNotNull(), nearbyRetryTick) { here, _ -> here }.collect { here ->
         val stations = allStations
           ?: try {
             trainsRepository.stations().also { allStations = it }
-          } catch (_: Exception) {
+          } catch (e: Exception) {
             if (_nearbyState.value !is NearbyUiState.Loaded) {
-              _nearbyState.value = NearbyUiState.Unavailable
+              _nearbyState.value = NearbyUiState.Unavailable(e.toAppFailure(connectivity.isOnline.value))
             }
             null
           }
@@ -152,9 +204,24 @@ class HomeViewModel(
     viewModelScope.launch {
       delay(NEARBY_LOCATING_TIMEOUT_MS)
       if (_nearbyState.value is NearbyUiState.Locating) {
-        _nearbyState.value = NearbyUiState.Unavailable
+        _nearbyState.value = NearbyUiState.Unavailable()
       }
     }
+  }
+
+  /** UI pushes the current map center so the offline-style fallback can pick an
+   *  area that covers what the user is looking at. */
+  fun setMapCenter(point: GeoPoint) {
+    mapCenter.value = point
+  }
+
+  /** Retry the Nearby fetch after an Unavailable state. */
+  fun retryNearby() {
+    allStations = null
+    if (_nearbyState.value is NearbyUiState.Unavailable) {
+      _nearbyState.value = NearbyUiState.Locating
+    }
+    nearbyRetryTick.value++
   }
 
   fun onDarkThemeChange(dark: Boolean) {

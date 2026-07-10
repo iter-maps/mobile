@@ -15,10 +15,10 @@ import org.koin.dsl.module
 val appModule = module {
   single { LocationProvider(androidContext()) }
 
-  viewModel { HomeViewModel(get(), get(), get(), get()) }
-  viewModel { SearchViewModel(get(), get()) }
-  viewModel { PlanningViewModel(get(), get()) }
-  viewModel { TrainBoardViewModel(get()) }
+  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
+  viewModel { SearchViewModel(get(), get(), get()) }
+  viewModel { PlanningViewModel(get(), get(), get()) }
+  viewModel { TrainBoardViewModel(get(), get()) }
   viewModel { OfflineViewModel(get()) }
   viewModel { PlaceDetailViewModel(get()) }
   viewModel { SettingsViewModel(get()) }

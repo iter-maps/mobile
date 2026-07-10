@@ -19,6 +19,19 @@
   <string name="error_network">Can\'t reach the server</string>
   <string name="error_generic">Something went wrong</string>
 
+  <!-- Typed failure states (AppFailure) -->
+  <string name="error_offline_title">You\'re offline</string>
+  <string name="error_offline_hint">Reconnect to plan trips and see live times</string>
+  <string name="error_offline_zones_hint">Your downloaded maps still work — planning and live times need a connection</string>
+  <string name="error_unreachable_title">Iter Maps is unreachable</string>
+  <string name="error_unreachable_hint">The server isn\'t responding. Try again in a moment.</string>
+  <string name="error_timeout_title">Taking too long</string>
+  <string name="error_timeout_hint">The connection is slow right now. Try again.</string>
+  <string name="error_busy_title">Server busy</string>
+  <string name="error_busy_hint">Too many requests right now — try again shortly.</string>
+  <string name="error_not_found_title">Nothing here</string>
+  <string name="error_generic_hint">An unexpected error occurred. Try again.</string>
+
   <!-- Home sheet -->
   <string name="home_search_hint">Where to?</string>
   <string name="home_quick_planning">Directions</string>
@@ -134,10 +147,38 @@
   <string name="settings_server_desc">The Iter Maps server this app talks to</string>
   <string name="settings_server_save">Apply</string>
 
+  <!-- Settings sections -->
+  <string name="settings_appearance">Appearance</string>
+  <string name="settings_map_location">Map &amp; location</string>
+  <string name="settings_offline">Offline maps</string>
+  <string name="settings_about">About &amp; legal</string>
+  <string name="settings_version">Version</string>
+  <string name="settings_attribution">Map data &amp; attribution</string>
+  <string name="settings_licenses">Open-source licenses</string>
+  <string name="settings_help">Help</string>
+  <string name="settings_replay_onboarding">Replay intro</string>
+  <string name="settings_replay_onboarding_desc">Show the welcome screens again next launch</string>
+  <string name="settings_advanced">Advanced</string>
+  <string name="settings_permission">Location permission</string>
+  <string name="settings_permission_granted">Granted</string>
+  <string name="settings_permission_denied">Tap to enable in system settings</string>
+
+  <!-- About the map / attribution -->
+  <string name="attribution_data_title">Map data</string>
+  <string name="attribution_osm">© OpenStreetMap contributors</string>
+  <string name="attribution_osm_desc">Map data is available under the Open Database License (ODbL). Tap to view the license.</string>
+  <string name="attribution_openmaptiles">© OpenMapTiles</string>
+  <string name="attribution_openmaptiles_desc">Vector tile schema by the OpenMapTiles project.</string>
+  <string name="attribution_render">Rendered with MapLibre</string>
+  <string name="attribution_render_desc">Maps are drawn on-device with the open-source MapLibre renderer.</string>
+  <string name="attribution_licenses_desc">Iter Maps is built with open-source software, including MapLibre, Ktor, Koin, Coil and Jetpack Compose.</string>
+
   <!-- Map layers -->
   <string name="layers_title">Map style</string>
 
   <!-- Map controls -->
   <string name="map_compass">Point north</string>
   <string name="map_my_location">My location</string>
+  <string name="map_offline_chip">Offline — downloaded map</string>
+  <string name="map_credit_osm">© OpenStreetMap</string>
 </resources>

@@ -3,9 +3,12 @@ package it.iterapp.app.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.iterapp.app.location.LocationProvider
+import it.iterapp.core.api.AppFailure
+import it.iterapp.core.api.toAppFailure
 import it.iterapp.core.geo.haversineMeters
 import it.iterapp.core.model.GeoPoint
 import it.iterapp.core.model.SearchResult
+import it.iterapp.core.net.Connectivity
 import it.iterapp.core.repo.SearchRepository
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
@@ -14,6 +17,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -28,49 +32,54 @@ import kotlinx.coroutines.flow.stateIn
 class SearchViewModel(
   private val repository: SearchRepository,
   private val locationProvider: LocationProvider,
+  private val connectivity: Connectivity,
 ) : ViewModel() {
 
   val query = MutableStateFlow("")
   private val _isSearching = MutableStateFlow(false)
   val isSearching: StateFlow<Boolean> = _isSearching
-  private val _error = MutableStateFlow(false)
-  val error: StateFlow<Boolean> = _error
+  private val _failure = MutableStateFlow<AppFailure?>(null)
+  val failure: StateFlow<AppFailure?> = _failure
 
-  val results: StateFlow<List<SearchResult>> = query
-    // Real queries debounce; clears and resets propagate immediately so no
-    // stale result list lingers under an emptied field.
-    .debounce { q -> if (q.trim().length < 2) 0L else 300L }
-    .flatMapLatest { q ->
-      flow {
-        if (q.trim().length < 2) {
+  // Bumped by [retry] to re-run the same query after a failure.
+  private val retryTick = MutableStateFlow(0)
+
+  val results: StateFlow<List<SearchResult>> =
+    combine(query, retryTick) { q, _ -> q }
+      // Real queries debounce; clears and resets propagate immediately so no
+      // stale result list lingers under an emptied field.
+      .debounce { q -> if (q.trim().length < 2) 0L else 300L }
+      .flatMapLatest { q ->
+        flow {
+          if (q.trim().length < 2) {
+            _isSearching.value = false
+            _failure.value = null
+            emit(emptyList())
+            return@flow
+          }
+          _isSearching.value = true
+          _failure.value = null
+          val bias = locationProvider.lastKnown()
+          // Only the fetch is guarded — emitting from a catch block violates
+          // flow exception transparency and can swallow cancellation.
+          val found = try {
+            repository.search(
+              query = q.trim(),
+              lang = Locale.getDefault().language,
+              bias = bias,
+            )
+          } catch (e: CancellationException) {
+            _isSearching.value = false
+            throw e
+          } catch (e: Exception) {
+            _failure.value = e.toAppFailure(connectivity.isOnline.value)
+            null
+          }
           _isSearching.value = false
-          _error.value = false
-          emit(emptyList())
-          return@flow
+          emit(found?.withDistancesFrom(bias) ?: emptyList())
         }
-        _isSearching.value = true
-        _error.value = false
-        val bias = locationProvider.lastKnown()
-        // Only the fetch is guarded — emitting from a catch block violates
-        // flow exception transparency and can swallow cancellation.
-        val found = try {
-          repository.search(
-            query = q.trim(),
-            lang = Locale.getDefault().language,
-            bias = bias,
-          )
-        } catch (e: CancellationException) {
-          _isSearching.value = false
-          throw e
-        } catch (_: Exception) {
-          _error.value = true
-          null
-        }
-        _isSearching.value = false
-        emit(found?.withDistancesFrom(bias) ?: emptyList())
       }
-    }
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
   fun onQueryChange(value: String) {
     // The spinner must cover the debounce window too, or the empty state
@@ -79,10 +88,15 @@ class SearchViewModel(
     query.value = value
   }
 
+  /** Re-runs the current query after a failure. */
+  fun retry() {
+    retryTick.value++
+  }
+
   fun reset() {
     query.value = ""
     _isSearching.value = false
-    _error.value = false
+    _failure.value = null
   }
 }
 

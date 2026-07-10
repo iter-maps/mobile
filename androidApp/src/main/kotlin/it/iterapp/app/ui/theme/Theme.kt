@@ -15,6 +15,12 @@ import it.iterapp.core.settings.ThemeMode
  * Material You when available and enabled (ADR 0009); otherwise a full tonal
  * scheme derived from the brand seed. Transit line/status colors are semantic
  * tokens in Color.kt, deliberately outside this scheme.
+ *
+ * Dark keeps the original TonalSpot look off [BrandSeed] (the reviewed,
+ * liked scheme). Light re-anchors off the darker [BrandInk] with a Vibrant
+ * ramp and positive contrast so the primary reads branded rather than a pale
+ * indigo, and the surface-container ladder actually separates by elevation
+ * instead of bunching near white (ADR 0014).
  */
 @Composable
 fun IterTheme(
@@ -33,10 +39,11 @@ fun IterTheme(
       if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }
     else -> dynamicColorScheme(
-      seedColor = BrandSeed,
+      seedColor = if (darkTheme) BrandSeed else BrandInk,
       isDark = darkTheme,
       isAmoled = false,
-      style = PaletteStyle.TonalSpot,
+      style = if (darkTheme) PaletteStyle.TonalSpot else PaletteStyle.Vibrant,
+      contrastLevel = if (darkTheme) 0.0 else 0.3,
     )
   }
   MaterialTheme(

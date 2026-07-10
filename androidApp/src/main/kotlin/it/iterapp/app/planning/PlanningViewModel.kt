@@ -4,13 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.iterapp.app.common.planDateTime
 import it.iterapp.app.location.LocationProvider
-import it.iterapp.core.api.IterApiException
-import it.iterapp.core.api.IterTransportException
+import it.iterapp.core.api.AppFailure
 import it.iterapp.core.api.PlanParams
+import it.iterapp.core.api.toAppFailure
 import it.iterapp.core.model.GeoPoint
 import it.iterapp.core.model.Itinerary
 import it.iterapp.core.model.SearchResult
+import it.iterapp.core.net.Connectivity
 import it.iterapp.core.repo.PlanRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +40,7 @@ sealed interface PlanState {
   /** [previous] keeps the outgoing results visible (dimmed) during a replan. */
   data class Loading(val previous: List<Itinerary>? = null) : PlanState
   data class Results(val itineraries: List<Itinerary>) : PlanState
-  data class Error(val network: Boolean) : PlanState
+  data class Failure(val failure: AppFailure) : PlanState
 }
 
 /**
@@ -55,6 +57,7 @@ internal fun keptItineraries(state: PlanState): List<Itinerary>? = when (state) 
 class PlanningViewModel(
   private val repository: PlanRepository,
   private val locationProvider: LocationProvider,
+  private val connectivity: Connectivity,
 ) : ViewModel() {
 
   val from = MutableStateFlow<PlanEndpoint?>(null)
@@ -145,10 +148,10 @@ class PlanningViewModel(
         )
         _state.value = PlanState.Results(itineraries)
         selected.value = itineraries.firstOrNull()
-      } catch (e: IterTransportException) {
-        _state.value = PlanState.Error(network = true)
-      } catch (e: IterApiException) {
-        _state.value = PlanState.Error(network = false)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        _state.value = PlanState.Failure(e.toAppFailure(connectivity.isOnline.value))
       }
     }
   }

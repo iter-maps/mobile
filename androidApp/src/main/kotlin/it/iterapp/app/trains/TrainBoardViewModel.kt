@@ -2,6 +2,9 @@ package it.iterapp.app.trains
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import it.iterapp.core.api.AppFailure
+import it.iterapp.core.api.toAppFailure
+import it.iterapp.core.net.Connectivity
 import it.iterapp.core.repo.TrainsRepository
 import it.iterapp.core.wire.BoardEntry
 import it.iterapp.core.wire.Station
@@ -37,7 +40,9 @@ sealed interface BoardState {
     val stale: Boolean = false,
     val forTab: BoardTab = BoardTab.DEPARTURES,
   ) : BoardState
-  data object Error : BoardState
+
+  /** Nothing to show at all; [failure] carries the typed cause when known. */
+  data class Error(val failure: AppFailure? = null) : BoardState
 }
 
 /**
@@ -50,6 +55,7 @@ sealed interface BoardState {
 internal fun boardPollFlow(
   pollMs: Long,
   initial: List<BoardEntry>? = null,
+  classify: (Throwable) -> AppFailure = { it.toAppFailure() },
   fetch: suspend () -> List<BoardEntry>,
 ): Flow<BoardState> = flow {
   var lastGood: List<BoardEntry>? = initial
@@ -57,19 +63,21 @@ internal fun boardPollFlow(
   while (true) {
     // Only the fetch is guarded: emissions stay outside the try so flow
     // cancellation (take, flatMapLatest switch) propagates untouched.
-    val entries = try {
-      fetch()
+    val (entries, error) = try {
+      fetch() to null
     } catch (e: CancellationException) {
       throw e
-    } catch (_: Exception) {
-      null
+    } catch (e: Exception) {
+      null to e
     }
     if (entries != null) {
       lastGood = entries
       emit(BoardState.Loaded(entries))
     } else {
       val kept = lastGood
-      emit(if (kept == null) BoardState.Error else BoardState.Loaded(kept, stale = true))
+      emit(
+        if (kept == null) BoardState.Error(error?.let(classify)) else BoardState.Loaded(kept, stale = true),
+      )
     }
     delay(pollMs)
   }
@@ -78,6 +86,7 @@ internal fun boardPollFlow(
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class TrainBoardViewModel(
   private val repository: TrainsRepository,
+  private val connectivity: Connectivity,
 ) : ViewModel() {
 
   val stationQuery = MutableStateFlow("")
@@ -87,8 +96,8 @@ class TrainBoardViewModel(
   private val _isSearching = MutableStateFlow(false)
   val isSearching: StateFlow<Boolean> = _isSearching
 
-  private val _searchError = MutableStateFlow(false)
-  val searchError: StateFlow<Boolean> = _searchError
+  private val _searchFailure = MutableStateFlow<AppFailure?>(null)
+  val searchFailure: StateFlow<AppFailure?> = _searchFailure
 
   private val searchRetryTick = MutableStateFlow(0)
   private val refreshTick = MutableStateFlow(0)
@@ -102,12 +111,12 @@ class TrainBoardViewModel(
         flow {
           if (q.trim().length < 2) {
             _isSearching.value = false
-            _searchError.value = false
+            _searchFailure.value = null
             emit(emptyList())
             return@flow
           }
           _isSearching.value = true
-          _searchError.value = false
+          _searchFailure.value = null
           // Only the fetch is guarded: emitting from a catch block violates
           // flow exception transparency and can swallow cancellation.
           val found = try {
@@ -115,8 +124,8 @@ class TrainBoardViewModel(
           } catch (e: CancellationException) {
             _isSearching.value = false
             throw e
-          } catch (_: Exception) {
-            _searchError.value = true
+          } catch (e: Exception) {
+            _searchFailure.value = e.toAppFailure(connectivity.isOnline.value)
             null
           }
           _isSearching.value = false
@@ -144,6 +153,7 @@ class TrainBoardViewModel(
           boardPollFlow(
             pollMs = TrainsRepository.BOARD_POLL_SECONDS * 1_000L,
             initial = seed,
+            classify = { it.toAppFailure(connectivity.isOnline.value) },
           ) {
             when (tab) {
               BoardTab.DEPARTURES -> repository.departures(station.id)
@@ -183,6 +193,6 @@ class TrainBoardViewModel(
     selectedStation.value = null
     tab.value = BoardTab.DEPARTURES
     _isSearching.value = false
-    _searchError.value = false
+    _searchFailure.value = null
   }
 }

@@ -26,11 +26,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.LocationSearching
@@ -39,6 +42,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,12 +57,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
 import it.iterapp.app.layers.MapLayersPage
 import it.iterapp.app.map.IterMapView
+import it.iterapp.app.map.MapAboutPage
 import it.iterapp.app.map.RouteDot
 import it.iterapp.app.map.RouteLine
 import it.iterapp.app.map.rememberMapCameraController
@@ -104,7 +112,20 @@ fun HomeScreen() {
   val sheetState = rememberSheetState()
   val camera = rememberMapCameraController()
 
+  // Dismiss the IME synchronously before any navigation that resizes the
+  // sheet, so the keyboard retracts first instead of racing the sheet spring
+  // (the sheet animation is driven by nav.current changing). clearFocus stops
+  // a recomposition from re-requesting focus mid-swap; hide() dispatches the
+  // retract — both are synchronous and complete before openKey is read.
+  val keyboard = LocalSoftwareKeyboardController.current
+  val focusManager = LocalFocusManager.current
+  fun dismissKeyboard() {
+    focusManager.clearFocus(force = true)
+    keyboard?.hide()
+  }
+
   val styleUrl by homeViewModel.styleUrl.collectAsStateWithLifecycle()
+  val offlineStyleUrl by homeViewModel.offlineStyleUrl.collectAsStateWithLifecycle()
   val userLocation by homeViewModel.userLocation.collectAsStateWithLifecycle()
   val selectedPlace by homeViewModel.selectedPlace.collectAsStateWithLifecycle()
   val recentPlaces by homeViewModel.recentPlaces.collectAsStateWithLifecycle()
@@ -115,6 +136,12 @@ fun HomeScreen() {
 
   val dark = isSystemInDarkTheme()
   LaunchedEffect(dark) { homeViewModel.onDarkThemeChange(dark) }
+
+  // Feed the camera target to the VM so the offline-style fallback can pick a
+  // downloaded area that covers what the user is looking at.
+  LaunchedEffect(camera) {
+    snapshotFlow { camera.center }.collect { center -> center?.let(homeViewModel::setMapCenter) }
+  }
 
   val permissionLauncher = rememberLauncherForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions(),
@@ -129,6 +156,7 @@ fun HomeScreen() {
   // arrows, or the shared ViewModels keep stale state (and the map keeps stale
   // overlays) on re-entry. Both paths funnel through popCurrent().
   fun popCurrent() {
+    dismissKeyboard()
     when (nav.current) {
       SheetPage.Search -> searchViewModel.reset()
       is SheetPage.PlaceDetail -> {
@@ -236,7 +264,9 @@ fun HomeScreen() {
     openKey = page,
     mapContent = {
       IterMapView(
-        styleUrl = styleUrl,
+        // Offline: render a downloaded area's local style when one covers the
+        // viewport; otherwise the live gateway style.
+        styleUrl = offlineStyleUrl ?: styleUrl,
         controller = camera,
         insetPx = mapInset.intValue,
         routeLines = routeLines,
@@ -261,6 +291,16 @@ fun HomeScreen() {
         },
         insetPx = mapInset.intValue,
         located = userLocation != null,
+      )
+      if (offlineStyleUrl != null) {
+        OfflineMapChip(Modifier.align(Alignment.TopCenter))
+      }
+      // Legally-required OSM/ODbL credit; tap opens full "About the map"
+      // attribution (the on-map "i" control was removed — ADR 0016).
+      MapAttributionCredit(
+        onClick = { nav.push(SheetPage.MapAbout) },
+        insetPx = mapInset.intValue,
+        modifier = Modifier.align(Alignment.BottomStart),
       )
     },
     sheetContent = {
@@ -304,6 +344,7 @@ fun HomeScreen() {
             viewModel = searchViewModel,
             onBack = { popCurrent() },
             onPick = { result ->
+              dismissKeyboard()
               homeViewModel.select(result)
               searchViewModel.reset()
               nav.push(SheetPage.PlaceDetail(result))
@@ -340,6 +381,7 @@ fun HomeScreen() {
             viewModel = searchViewModel,
             onBack = { popCurrent() },
             onPick = { result ->
+              dismissKeyboard()
               planningViewModel.setEndpoint(
                 current.from,
                 PlanEndpoint(result.name, result.point),
@@ -351,6 +393,7 @@ fun HomeScreen() {
             // Offered only with a fix in hand, so the row never no-ops.
             onMyLocation = if (userLocation != null) {
               {
+                dismissKeyboard()
                 planningViewModel.useMyLocation(current.from)
                 searchViewModel.reset()
                 nav.pop()
@@ -386,7 +429,11 @@ fun HomeScreen() {
           SheetPage.Settings -> SettingsPage(
             viewModel = settingsViewModel,
             onBack = { popCurrent() },
+            onOpenOffline = { nav.push(SheetPage.Offline) },
+            onOpenAttribution = { nav.push(SheetPage.MapAbout) },
           )
+
+          SheetPage.MapAbout -> MapAboutPage(onBack = { popCurrent() })
         }
       }
     },
@@ -467,7 +514,9 @@ private fun androidx.compose.foundation.layout.BoxScope.MapControls(
     SmallFloatingActionButton(
       onClick = { camera.resetNorth() },
       containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-      contentColor = MaterialTheme.colorScheme.onSurface,
+      // Brand primary, not onSurface (near-black on light) — the needle reads
+      // as part of the palette instead of a stray black glyph.
+      contentColor = MaterialTheme.colorScheme.primary,
     ) {
       Icon(
         Icons.Rounded.Explore,
@@ -475,6 +524,54 @@ private fun androidx.compose.foundation.layout.BoxScope.MapControls(
         // -45 compensates the Explore needle's natural northeast orientation.
         modifier = Modifier.graphicsLayer { rotationZ = -(camera.bearing + 45.0).toFloat() },
       )
+    }
+  }
+}
+
+/** Persistent, low-emphasis OSM credit; sits below the compass, above the sheet. */
+@Composable
+private fun MapAttributionCredit(
+  onClick: () -> Unit,
+  insetPx: Int,
+  modifier: Modifier = Modifier,
+) {
+  Surface(
+    onClick = onClick,
+    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    shape = MaterialTheme.shapes.small,
+    modifier = modifier
+      .offset { IntOffset(0, -insetPx) }
+      .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+      .padding(start = 16.dp, bottom = 16.dp),
+  ) {
+    Text(
+      text = stringResourceSafe(R.string.map_credit_osm),
+      style = MaterialTheme.typography.labelSmall,
+      modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+  }
+}
+
+/** Non-blocking banner shown while the map is served from a downloaded area. */
+@Composable
+private fun OfflineMapChip(modifier: Modifier = Modifier) {
+  Surface(
+    color = MaterialTheme.colorScheme.secondaryContainer,
+    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    shape = MaterialTheme.shapes.large,
+    shadowElevation = 3.dp,
+    modifier = modifier
+      .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+      .padding(top = 12.dp),
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+      modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+      Icon(Icons.Rounded.CloudOff, contentDescription = null, modifier = Modifier.size(16.dp))
+      Text(stringResourceSafe(R.string.map_offline_chip), style = MaterialTheme.typography.labelLarge)
     }
   }
 }

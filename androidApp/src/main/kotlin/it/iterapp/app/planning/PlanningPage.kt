@@ -30,13 +30,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CloudOff
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.PinDrop
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.SwapVert
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -62,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.iterapp.app.R
+import it.iterapp.app.common.FailureMessage
 import it.iterapp.app.common.SkeletonBlock
 import it.iterapp.app.common.formatClock
 import it.iterapp.app.common.formatDistance
@@ -212,14 +210,9 @@ fun PlanningPage(
         } else {
           ItinerarySkeletons()
         }
-        is PlanState.Error -> SheetStatusMessage(
-          icon = if (s.network) Icons.Rounded.CloudOff else Icons.Rounded.ErrorOutline,
-          message = stringResource(if (s.network) R.string.error_network else R.string.error_generic),
-          action = {
-            FilledTonalButton(onClick = { viewModel.replan() }) {
-              Text(stringResource(R.string.action_retry))
-            }
-          },
+        is PlanState.Failure -> FailureMessage(
+          failure = s.failure,
+          onRetry = { viewModel.replan() },
         )
         is PlanState.Results -> {
           if (s.itineraries.isEmpty()) {
