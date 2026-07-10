@@ -3,6 +3,8 @@ package it.iterapp.core.di
 import android.content.Context
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
+import it.iterapp.core.net.AndroidConnectivity
+import it.iterapp.core.net.Connectivity
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -16,6 +18,7 @@ actual fun platformCoreModule(): Module = module {
       androidContext().getSharedPreferences("iter_prefs", Context.MODE_PRIVATE),
     )
   }
+  single<Connectivity> { AndroidConnectivity(androidContext()) }
   single<FileSystem> { FileSystem.SYSTEM }
   single<Path>(OfflineRootQualifier) {
     androidContext().filesDir.absolutePath.toPath() / "offline"

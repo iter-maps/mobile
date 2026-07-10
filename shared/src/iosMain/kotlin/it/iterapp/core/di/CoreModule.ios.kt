@@ -2,6 +2,8 @@ package it.iterapp.core.di
 
 import com.russhwolf.settings.NSUserDefaultsSettings
 import com.russhwolf.settings.Settings
+import it.iterapp.core.net.Connectivity
+import it.iterapp.core.net.IosConnectivity
 import kotlinx.cinterop.ExperimentalForeignApi
 import okio.FileSystem
 import okio.Path
@@ -15,6 +17,7 @@ import platform.Foundation.NSUserDomainMask
 
 actual fun platformCoreModule(): Module = module {
   single<Settings> { NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults) }
+  single<Connectivity> { IosConnectivity() }
   single<FileSystem> { FileSystem.SYSTEM }
   single<Path>(OfflineRootQualifier) { documentsPath() / "offline" }
 }

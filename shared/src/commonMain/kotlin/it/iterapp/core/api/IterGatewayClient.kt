@@ -345,7 +345,7 @@ class IterGatewayClient(
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
-      throw IterTransportException("gateway unreachable: ${e.message}", e)
+      throw IterTransportException("gateway unreachable: ${e.message}", e, transportKindOf(e))
     }
     if (response.status.isSuccess()) return response
     throw response.toApiException()
@@ -373,7 +373,7 @@ class IterGatewayClient(
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
-      throw IterTransportException("gateway unreachable: ${e.message}", e)
+      throw IterTransportException("gateway unreachable: ${e.message}", e, transportKindOf(e))
     }
     statement.execute { response ->
       if (!response.status.isSuccess()) throw response.toApiException()
@@ -404,6 +404,25 @@ class IterGatewayClient(
 internal fun randomRequestId(): String {
   val chars = "0123456789abcdef"
   return buildString(16) { repeat(16) { append(chars[Random.nextInt(16)]) } }
+}
+
+/**
+ * Classifies a caught transport exception as [TransportKind.TIMEOUT] when any
+ * Ktor timeout fired anywhere in the cause chain, else [TransportKind.UNREACHABLE].
+ * Matched by simple name so no engine-specific type has to resolve in commonMain.
+ */
+private fun transportKindOf(error: Throwable): TransportKind {
+  var cause: Throwable? = error
+  while (cause != null) {
+    when (cause::class.simpleName) {
+      "HttpRequestTimeoutException",
+      "ConnectTimeoutException",
+      "SocketTimeoutException",
+      -> return TransportKind.TIMEOUT
+    }
+    cause = cause.cause
+  }
+  return TransportKind.UNREACHABLE
 }
 
 private suspend fun HttpResponse.toApiException(): IterApiException {

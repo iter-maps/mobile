@@ -16,8 +16,19 @@ class IterApiException(
   val isBareNotFound: Boolean get() = status == 404 && code == null
 }
 
+/** How a transport failure presented, as far as the client can tell. */
+enum class TransportKind {
+  /** The request timed out (connect/socket/request timeout fired). */
+  TIMEOUT,
+
+  /** DNS failure, connection refused/reset — no response arrived. Whether this
+   *  is "no network" or "server down" is decided later against connectivity. */
+  UNREACHABLE,
+}
+
 /** Transport-level failure (DNS, refused, timeout before any response). */
 class IterTransportException(
   override val message: String,
   override val cause: Throwable?,
+  val kind: TransportKind = TransportKind.UNREACHABLE,
 ) : Exception(message, cause)

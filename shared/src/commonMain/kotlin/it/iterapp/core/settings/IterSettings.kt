@@ -39,6 +39,11 @@ class IterSettings(
   )
   val mapMode: StateFlow<MapMode> = _mapMode
 
+  // First-run gate for onboarding: false until the flow is completed/skipped.
+  // Durable, so it survives process death (never re-shows after a crash).
+  private val _hasSeenOnboarding = MutableStateFlow(store.getBoolean(KEY_ONBOARDING_SEEN, false))
+  val hasSeenOnboarding: StateFlow<Boolean> = _hasSeenOnboarding
+
   fun setGatewayOrigin(origin: String) {
     val cleaned = origin.trim().trimEnd('/')
     store.putString(KEY_ORIGIN, cleaned)
@@ -60,10 +65,16 @@ class IterSettings(
     _mapMode.value = mode
   }
 
+  fun setOnboardingSeen(seen: Boolean) {
+    store.putBoolean(KEY_ONBOARDING_SEEN, seen)
+    _hasSeenOnboarding.value = seen
+  }
+
   private companion object {
     const val KEY_ORIGIN = "gateway_origin"
     const val KEY_THEME = "theme_mode"
     const val KEY_DYNAMIC = "dynamic_color"
     const val KEY_MAP_MODE = "map_mode"
+    const val KEY_ONBOARDING_SEEN = "onboarding_seen"
   }
 }
