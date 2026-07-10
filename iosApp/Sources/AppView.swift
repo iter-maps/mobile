@@ -11,6 +11,8 @@ struct AppView: View {
   @EnvironmentObject private var settings: SettingsModel
   @EnvironmentObject private var planning: PlanningModel
   @EnvironmentObject private var location: LocationProvider
+  @EnvironmentObject private var connectivity: ConnectivityModel
+  @EnvironmentObject private var offline: OfflineModel
   @Environment(\.colorScheme) private var colorScheme
 
   @StateObject private var mapController = MapController()
@@ -19,7 +21,7 @@ struct AppView: View {
   var body: some View {
     GeometryReader { geo in
       MapLibreView(
-        styleURL: URL(string: settings.styleUrl(dark: effectiveDark)),
+        styleURL: URL(string: activeStyleURL),
         routeLines: routeLines,
         marker: markerCoordinate,
         showsUserLocation: location.isAuthorized,
@@ -30,6 +32,7 @@ struct AppView: View {
       .ignoresSafeArea()
     }
     .overlay(alignment: .topTrailing) { mapChrome }
+    .overlay(alignment: .bottomLeading) { mapCredit }
     .sheet(isPresented: $sheetVisible) {
       SheetRoot(bboxProvider: { mapController.viewportBBox() })
         .presentationDetents([.height(SheetMetrics.peek), .medium, .large], selection: $app.detent)
@@ -37,7 +40,10 @@ struct AppView: View {
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(true)
     }
-    .onAppear { location.requestPermission() }
+    .onAppear {
+      location.requestPermission()
+      offline.refresh()
+    }
     .onChange(of: app.selectedPlace) { _, place in
       if let place {
         mapController.setCenter(latitude: place.point.lat, longitude: place.point.lon, zoom: 16)
@@ -49,8 +55,10 @@ struct AppView: View {
       }
     }
     .preferredColorScheme(settings.preferredColorScheme)
-    // brand.seed doubles as the iOS accent (docs/design/tokens.md).
-    .tint(Color(rgb: 0x888FFA))
+    // brand.seed (#888FFA) reads well on dark but is too light on white
+    // (white-on-seed ≈ 2.85:1), so use the darker BrandInk (#4248C9) in light
+    // mode for legible tinted/selected controls (docs/design/tokens.md).
+    .tint(Color.brandAccent)
   }
 
   private var effectiveDark: Bool {
@@ -59,6 +67,28 @@ struct AppView: View {
     case "DARK": return true
     default: return colorScheme == .dark
     }
+  }
+
+  /// The style the map renders: the downloaded offline style when the device is
+  /// offline and a downloaded area covers the viewport, else the live gateway
+  /// style (item 7 — offline-map fallback).
+  private var activeStyleURL: String {
+    let styleName = settings.styleName(dark: effectiveDark)
+    if let offlineURL = connectivity.offlineStyleURL(
+      styleName: styleName,
+      bbox: mapController.viewportBBox(),
+      areas: offline.areas
+    ) {
+      return offlineURL
+    }
+    return settings.styleUrl(dark: effectiveDark)
+  }
+
+  private var isServingOfflineMap: Bool {
+    connectivity.isServingOfflineMap(
+      bbox: mapController.viewportBBox(),
+      areas: offline.areas
+    )
   }
 
   private var markerCoordinate: CLLocationCoordinate2D? {
@@ -101,6 +131,38 @@ struct AppView: View {
   }
 
   // MARK: - Floating map chrome (Liquid Glass, ADR 0009)
+
+  /// Always-visible, low-emphasis basemap credit (ODbL/OpenMapTiles: the
+  /// attribution must stay visible or one-tap accessible — the on-map "i"
+  /// button is hidden in MapLibreView, so this replaces it). Tapping opens the
+  /// About-the-map screen in Settings. When we're serving a downloaded map, a
+  /// small non-blocking "Offline" chip sits above it.
+  private var mapCredit: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      if isServingOfflineMap {
+        Label(Strings.mapOfflineChip, systemImage: "wifi.slash")
+          .font(.caption2.weight(.medium))
+          .padding(.horizontal, 8)
+          .padding(.vertical, 4)
+          .background(.regularMaterial, in: Capsule())
+      }
+      Button {
+        app.push(.attribution)
+      } label: {
+        Text(Strings.mapCreditOsm)
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .padding(.horizontal, 6)
+          .padding(.vertical, 3)
+          .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(Strings.attributionTitle)
+    }
+    // Lift clear of the resting sheet edge and the home-indicator safe area.
+    .padding(.leading, 12)
+    .padding(.bottom, SheetMetrics.peek + 12)
+  }
 
   private var mapChrome: some View {
     VStack(spacing: 10) {
@@ -203,6 +265,8 @@ private struct SheetRoot: View {
             OfflinePage(currentBBox: bboxProvider)
           case .settings:
             SettingsPage()
+          case .attribution:
+            AttributionPage()
           }
         }
     }

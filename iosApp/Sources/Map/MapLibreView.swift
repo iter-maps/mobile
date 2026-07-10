@@ -81,6 +81,10 @@ struct MapLibreView: UIViewRepresentable {
     let mapView = MLNMapView(frame: .zero, styleURL: styleURL)
     mapView.delegate = context.coordinator
     mapView.logoView.isHidden = true
+    // The on-map "i" button is replaced by an always-visible "© OpenStreetMap"
+    // credit over the map that opens the About-the-map screen (ODbL/OpenMapTiles
+    // attribution stays visible / one-tap accessible — never removed outright).
+    mapView.attributionButton.isHidden = true
     mapView.setCenter(
       CLLocationCoordinate2D(latitude: 41.9028, longitude: 12.4964),
       zoomLevel: 5,

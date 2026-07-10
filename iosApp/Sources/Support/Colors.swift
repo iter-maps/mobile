@@ -31,6 +31,14 @@ extension Color {
   init(rgb: UInt32) {
     self.init(uiColor: UIColor(rgb: rgb))
   }
+
+  /// The app accent, resolved per color scheme. brand.seed (#888FFA) is only
+  /// 2.85:1 white-on-seed, too weak for light-mode tinted/selected controls, so
+  /// light mode uses the darker brand.ink (#4248C9) while dark keeps the seed
+  /// (docs/design/tokens.md).
+  static let brandAccent = Color(uiColor: UIColor { traits in
+    traits.userInterfaceStyle == .dark ? UIColor(rgb: 0x888FFA) : UIColor(rgb: 0x4248C9)
+  })
 }
 
 /// Transit identity colors — semantic, palette-independent (ADR 0009,

@@ -23,6 +23,7 @@ struct IterApp: App {
   @StateObject private var offline: OfflineModel
   @StateObject private var place: PlaceModel
   @StateObject private var settings: SettingsModel
+  @StateObject private var connectivity: ConnectivityModel
 
   init() {
     let core = CoreProvider.shared.core
@@ -35,6 +36,7 @@ struct IterApp: App {
     _offline = StateObject(wrappedValue: OfflineModel(core: core))
     _place = StateObject(wrappedValue: PlaceModel(core: core))
     _settings = StateObject(wrappedValue: SettingsModel(core: core))
+    _connectivity = StateObject(wrappedValue: ConnectivityModel(core: core))
   }
 
   var body: some Scene {
@@ -48,6 +50,7 @@ struct IterApp: App {
         .environmentObject(offline)
         .environmentObject(place)
         .environmentObject(settings)
+        .environmentObject(connectivity)
     }
   }
 }

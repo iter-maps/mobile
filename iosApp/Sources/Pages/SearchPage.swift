@@ -16,6 +16,7 @@ struct SearchPage: View {
   @EnvironmentObject private var search: SearchModel
   @EnvironmentObject private var planning: PlanningModel
   @EnvironmentObject private var location: LocationProvider
+  @EnvironmentObject private var offline: OfflineModel
   @State private var searchPresented = true
 
   var body: some View {
@@ -36,7 +37,16 @@ struct SearchPage: View {
         }
         .buttonStyle(.plain)
       }
-      if search.results.isEmpty && search.query.count >= 2 && !search.isSearching {
+      if let failure = search.failure, search.results.isEmpty, !search.isSearching {
+        // A network error must never look like "Nothing found".
+        StatusView(
+          failure: failure,
+          hasOfflineMaps: !offline.areas.isEmpty,
+          onRetry: { search.retry() }
+        )
+        .frame(maxWidth: .infinity)
+        .listRowSeparator(.hidden)
+      } else if search.results.isEmpty && search.query.count >= 2 && !search.isSearching {
         Text(Strings.searchNoResults)
           .foregroundStyle(.secondary)
       }
@@ -49,6 +59,7 @@ struct SearchPage: View {
       prompt: Text(Strings.searchPlaceholder)
     )
     .navigationBarTitleDisplayMode(.inline)
+    .onAppear { offline.refresh() }
     .onDisappear { search.reset() }
   }
 

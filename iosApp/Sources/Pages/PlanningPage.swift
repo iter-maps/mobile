@@ -7,6 +7,7 @@ import SwiftUI
 struct PlanningPage: View {
   @EnvironmentObject private var app: AppModel
   @EnvironmentObject private var planning: PlanningModel
+  @EnvironmentObject private var offline: OfflineModel
 
   var body: some View {
     VStack(spacing: 0) {
@@ -79,11 +80,13 @@ struct PlanningPage: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
       Spacer(minLength: 0)
-    case .error:
-      Text(Strings.errorNetwork)
-        .font(.subheadline)
-        .foregroundStyle(.red)
-        .padding(16)
+    case .failure(let failure):
+      StatusView(
+        failure: failure,
+        hasOfflineMaps: !offline.areas.isEmpty,
+        onRetry: { planning.replan() }
+      )
+      .padding(16)
       Spacer(minLength: 0)
     case .results(let itineraries):
       if itineraries.isEmpty {

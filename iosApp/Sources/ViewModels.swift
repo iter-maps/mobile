@@ -1,6 +1,7 @@
 import Foundation
 import IterCore
 import SwiftUI
+import UIKit
 
 // MARK: - Sheet navigation
 
@@ -14,6 +15,7 @@ enum SheetRoute: Hashable {
   case boards(initialQuery: String?)
   case offline
   case settings
+  case attribution
 }
 
 enum SheetMetrics {
@@ -30,12 +32,25 @@ final class AppModel: ObservableObject {
   @Published var selectedPlace: SearchResult?
 
   func push(_ route: SheetRoute) {
+    // Dismiss the keyboard BEFORE the detent flips so the IME collapses ahead
+    // of the sheet resize instead of overlapping it (see keyboard-timing).
+    resignFirstResponder()
     path.append(route)
     detent = preferredDetent(for: route)
   }
 
   func pop() {
-    if !path.isEmpty { path.removeLast() }
+    guard !path.isEmpty else { return }
+    // Same ordering guarantee as push: resign first responder, then mutate the
+    // path (which drives the sheet resize back down).
+    resignFirstResponder()
+    path.removeLast()
+  }
+
+  private func resignFirstResponder() {
+    UIApplication.shared.sendAction(
+      #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
+    )
   }
 
   private func preferredDetent(for route: SheetRoute) -> PresentationDetent {
@@ -57,6 +72,8 @@ final class SearchModel: ObservableObject {
   }
   @Published private(set) var results: [SearchResult] = []
   @Published private(set) var isSearching = false
+  /// Typed failure so a network error is never shown as "Nothing found".
+  @Published private(set) var failure: AppFailure?
 
   private let core: IterCore
   private let location: LocationProvider
@@ -72,6 +89,7 @@ final class SearchModel: ObservableObject {
     let trimmed = query.trimmingCharacters(in: .whitespaces)
     guard trimmed.count >= 2 else {
       results = []
+      failure = nil
       isSearching = false
       return
     }
@@ -86,18 +104,30 @@ final class SearchModel: ObservableObject {
           bias: self.location.lastKnownPoint,
           limit: 15
         )
-        if !Task.isCancelled { self.results = found }
+        if !Task.isCancelled {
+          self.results = found
+          self.failure = nil
+        }
       } catch {
-        if !Task.isCancelled { self.results = [] }
+        if !Task.isCancelled {
+          self.results = []
+          self.failure = AppFailure.from(error, isOnline: self.core.isOnline())
+        }
       }
       if !Task.isCancelled { self.isSearching = false }
     }
+  }
+
+  /// Re-runs the last query after a failure.
+  func retry() {
+    scheduleSearch()
   }
 
   func reset() {
     searchTask?.cancel()
     query = ""
     results = []
+    failure = nil
     isSearching = false
   }
 }
@@ -141,7 +171,7 @@ enum PlanState {
   case idle
   case loading
   case results([Itinerary])
-  case error
+  case failure(AppFailure)
 }
 
 @MainActor
@@ -237,7 +267,9 @@ final class PlanningModel: ObservableObject {
         self.state = .results(itineraries)
         self.selected = itineraries.first
       } catch {
-        if !Task.isCancelled { self.state = .error }
+        if !Task.isCancelled {
+          self.state = .failure(AppFailure.from(error, isOnline: self.core.isOnline()))
+        }
       }
     }
   }
@@ -261,8 +293,9 @@ enum BoardTab {
 enum BoardState {
   case idle
   case loading
-  case loaded([BoardEntry])
-  case error
+  /// `stale` marks a last-good board kept on screen after a poll failed.
+  case loaded([BoardEntry], stale: Bool)
+  case failure(AppFailure)
 }
 
 @MainActor
@@ -271,6 +304,9 @@ final class BoardsModel: ObservableObject {
     didSet { scheduleStationSearch() }
   }
   @Published private(set) var stations: [Station] = []
+  /// Typed failure for the station search, so a network error isn't shown as
+  /// an empty list.
+  @Published private(set) var stationsFailure: AppFailure?
   @Published var selectedStation: Station? {
     didSet { restartPolling() }
   }
@@ -282,6 +318,9 @@ final class BoardsModel: ObservableObject {
   private let core: IterCore
   private var searchTask: Task<Void, Never>?
   private var pollTask: Task<Void, Never>?
+  /// The last board successfully fetched; kept on screen (marked stale) when a
+  /// subsequent poll fails, mirroring Android's boardPollFlow.
+  private var lastGoodEntries: [BoardEntry]?
 
   /// Boards are server-cached with max-age=20 (TrainsRepository contract);
   /// never poll faster.
@@ -296,6 +335,7 @@ final class BoardsModel: ObservableObject {
     let trimmed = stationQuery.trimmingCharacters(in: .whitespaces)
     guard trimmed.count >= 2 else {
       stations = []
+      stationsFailure = nil
       return
     }
     searchTask = Task { [weak self] in
@@ -303,15 +343,32 @@ final class BoardsModel: ObservableObject {
       guard let self, !Task.isCancelled else { return }
       do {
         let found = try await self.core.trains.searchStations(query: trimmed)
-        if !Task.isCancelled { self.stations = found }
+        if !Task.isCancelled {
+          self.stations = found
+          self.stationsFailure = nil
+        }
       } catch {
-        if !Task.isCancelled { self.stations = [] }
+        if !Task.isCancelled {
+          self.stations = []
+          self.stationsFailure = AppFailure.from(error, isOnline: self.core.isOnline())
+        }
       }
     }
   }
 
+  /// Re-runs the station search after a failure.
+  func retryStationSearch() {
+    scheduleStationSearch()
+  }
+
+  /// Re-runs the board poll after a failure with nothing to show.
+  func retryBoard() {
+    restartPolling()
+  }
+
   private func restartPolling() {
     pollTask?.cancel()
+    lastGoodEntries = nil
     guard let station = selectedStation else {
       board = .idle
       return
@@ -328,10 +385,17 @@ final class BoardsModel: ObservableObject {
           case .arrivals: entries = try await self.core.trains.arrivals(stationId: station.id)
           }
           if Task.isCancelled { return }
-          self.board = .loaded(entries)
+          self.lastGoodEntries = entries
+          self.board = .loaded(entries, stale: false)
         } catch {
           if Task.isCancelled { return }
-          self.board = .error
+          // Keep the last good board (marked stale) rather than blanking it;
+          // only surface a full StatusView when there's nothing to show.
+          if let last = self.lastGoodEntries {
+            self.board = .loaded(last, stale: true)
+          } else {
+            self.board = .failure(AppFailure.from(error, isOnline: self.core.isOnline()))
+          }
         }
         try? await Task.sleep(for: .seconds(BoardsModel.pollSeconds))
       }
@@ -344,9 +408,11 @@ final class BoardsModel: ObservableObject {
     pollTask = nil
     stationQuery = ""
     stations = []
+    stationsFailure = nil
     selectedStation = nil
     tab = .departures
     board = .idle
+    lastGoodEntries = nil
   }
 }
 
@@ -451,6 +517,68 @@ final class OfflineModel: ObservableObject {
   }
 }
 
+// MARK: - Connectivity & offline-map fallback
+
+/// Tracks reachability from the shared `Connectivity` monitor and decides,
+/// given the current viewport and the installed offline areas, whether to fall
+/// back to a downloaded map style when the device is offline (coherence with
+/// offline zones — item 7).
+@MainActor
+final class ConnectivityModel: ObservableObject {
+  @Published private(set) var isOnline = true
+
+  private let core: IterCore
+
+  init(core: IterCore) {
+    self.core = core
+    // Fires with the current value immediately and on every change.
+    core.observeOnline { [weak self] online in
+      let value = online.boolValue
+      Task { @MainActor in self?.isOnline = value }
+    }
+  }
+
+  /// Point-in-time reachability, for classifying a caught error at the call site.
+  var isOnlineNow: Bool { core.isOnline() }
+
+  /// The offline style URL to use for the given viewport, or nil to keep the
+  /// live style. Returns a downloaded style only when offline AND an installed
+  /// area covers the viewport center.
+  func offlineStyleURL(styleName: String, bbox: String?, areas: [OfflineArea]) -> String? {
+    guard !isOnline, let bbox else { return nil }
+    guard let area = Self.areaCovering(bbox: bbox, in: areas) else { return nil }
+    // Only offer an offline style the bundle actually contains.
+    guard area.manifest.styles.contains(styleName) else {
+      // Fall back to a base style the bundle does carry, if any.
+      guard let fallback = area.manifest.styles.first else { return nil }
+      return area.styleUrl(styleName: fallback)
+    }
+    return area.styleUrl(styleName: styleName)
+  }
+
+  /// True when we are offline and a downloaded area covers the viewport — the
+  /// signal for the "Offline — downloaded map" chip.
+  func isServingOfflineMap(bbox: String?, areas: [OfflineArea]) -> Bool {
+    guard !isOnline, let bbox else { return false }
+    return Self.areaCovering(bbox: bbox, in: areas) != nil
+  }
+
+  /// Picks an installed area whose bbox contains the viewport center. Manifest
+  /// bbox is the JSON 4-tuple `[minLon, minLat, maxLon, maxLat]`.
+  private static func areaCovering(bbox: String, in areas: [OfflineArea]) -> OfflineArea? {
+    let parts = bbox.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+    guard parts.count == 4 else { return nil }
+    let centerLon = (parts[0] + parts[2]) / 2
+    let centerLat = (parts[1] + parts[3]) / 2
+    return areas.first { area in
+      let box = area.manifest.bbox.map { $0.doubleValue }
+      guard box.count == 4 else { return false }
+      return centerLon >= box[0] && centerLon <= box[2]
+        && centerLat >= box[1] && centerLat <= box[3]
+    }
+  }
+}
+
 // MARK: - Place enrichment
 
 /// Optional Wikimedia enrichment for a selected place. Search results carry no
@@ -529,15 +657,33 @@ final class SettingsModel: ObservableObject {
     }
   }
 
-  /// Style name from the shared whitelist (wire StyleNames).
-  func styleUrl(dark: Bool) -> String {
-    let name: String
+  /// Resets the first-run flag so the intro can be shown again (onboarding is
+  /// gated on `hasSeenOnboarding` in the shared settings).
+  func replayOnboarding() {
+    core.setOnboardingSeen(seen: false)
+  }
+
+  var hasSeenOnboarding: Bool {
+    core.hasSeenOnboarding()
+  }
+
+  /// The app's marketing version from the bundle (CFBundleShortVersionString).
+  var appVersion: String {
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+  }
+
+  /// The style name for the current map mode + theme (wire StyleNames).
+  func styleName(dark: Bool) -> String {
     if mapMode == "TRANSIT" {
-      name = dark ? "transit-dark" : "transit-light"
+      return dark ? "transit-dark" : "transit-light"
     } else {
-      name = dark ? "dark" : "light"
+      return dark ? "dark" : "light"
     }
-    return core.styleUrl(name: name)
+  }
+
+  /// Live style URL from the gateway.
+  func styleUrl(dark: Bool) -> String {
+    core.styleUrl(name: styleName(dark: dark))
   }
 }
 

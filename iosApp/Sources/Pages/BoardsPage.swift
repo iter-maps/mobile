@@ -48,15 +48,21 @@ struct BoardsPage: View {
         .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
         .padding(.top, 6)
-      List(boards.stations) { station in
-        Button {
-          boards.selectedStation = station
-        } label: {
-          Text(station.name)
+      if let failure = boards.stationsFailure, boards.stations.isEmpty {
+        // A network error must never look like an empty station list.
+        StatusView(failure: failure) { boards.retryStationSearch() }
+        Spacer(minLength: 0)
+      } else {
+        List(boards.stations) { station in
+          Button {
+            boards.selectedStation = station
+          } label: {
+            Text(station.name)
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .listStyle(.plain)
       }
-      .listStyle(.plain)
     }
   }
 
@@ -79,18 +85,25 @@ struct BoardsPage: View {
           .frame(maxWidth: .infinity)
           .padding(.vertical, 32)
         Spacer(minLength: 0)
-      case .error:
-        Text(Strings.errorNetwork)
-          .foregroundStyle(.red)
-          .padding(16)
+      case .failure(let failure):
+        StatusView(failure: failure) { boards.retryBoard() }
         Spacer(minLength: 0)
-      case .loaded(let entries):
+      case .loaded(let entries, let stale):
         if entries.isEmpty {
           Text(Strings.trainsEmpty)
             .foregroundStyle(.secondary)
             .padding(16)
           Spacer(minLength: 0)
         } else {
+          if stale {
+            // Keep the last good board visible, flagged as not live.
+            Label(Strings.trainsStale, systemImage: "wifi.slash")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(.horizontal, 16)
+              .padding(.bottom, 2)
+          }
           List {
             ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
               BoardRow(entry: entry, showOrigin: boards.tab == .arrivals)
