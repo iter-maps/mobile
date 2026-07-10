@@ -8,8 +8,14 @@ each platform's system; only the tokens below are ours.
 
 | Token | Value | Use |
 |---|---|---|
-| `brand.seed` | `#888FFA` | Seed for the Android fallback tonal palette; iOS accent. |
-| `brand.ink` | `#4248C9` | Wordmark, badges, marketing surfaces. |
+| `brand.seed` | `#888FFA` | Brand identity color; seeds the **dark** Material scheme (TonalSpot); iOS dark accent. |
+| `brand.ink` | `#4248C9` | Wordmark, badges, marketing surfaces; seeds the **light** Material scheme; iOS light accent. |
+
+The Material scheme is seeded per mode (ADR 0014): **light** from `brand.ink`
+with a Vibrant ramp and positive contrast so the primary reads branded on
+near-white surfaces and the container ladder shows elevation; **dark** from
+`brand.seed` with TonalSpot, unchanged. `brand.seed #888FFA` stays the identity
+color — only the light scheme seed differs.
 
 ## Transit line identity
 
@@ -30,6 +36,14 @@ Material scheme so no wallpaper palette can re-tint a metro line.
 | `status.ok` / `status.degraded` / `status.down` | Service status strip (health vocabulary mirrors the wire `Status`). |
 | `severity.info` / `severity.warning` / `severity.severe` | Alert severities, each with a `.container` background variant per theme. |
 | `delay.early` / `delay.onTime` / `delay.late` | Board and leg delay coloring (early = signed negative minutes). |
+
+## Failure states
+
+Failures are classified once in the shared core as `AppFailure` categories
+(ADR 0015) — `NoConnection`, `ServerUnreachable`, `Timeout`, and the
+domain/empty cases — and each renders as one inline state component per
+category on both shells (no system alerts). Copy for the offline categories is
+honest about what downloaded offline zones can and cannot do.
 
 ## Sheet metrics
 

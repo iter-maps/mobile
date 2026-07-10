@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-06
 - **Supersedes:** 0009 (the dynamic-color default only)
-- **Superseded by:** —
+- **Superseded by:** 0014 (the light-mode seed only)
 
 ## Context
 

@@ -57,3 +57,6 @@ a typo) do not need one.
 - [0011](0011-platform-location-no-gms.md) — Platform location APIs only, no Google Play Services
 - [0012](0012-strict-ci-bar.md) — Strict CI: build, test, lint, REUSE on every push
 - [0013](0013-brand-palette-by-default.md) — Brand palette by default, wallpaper tint opt-in
+- [0014](0014-light-mode-palette-off-brand-ink.md) — Light-mode palette re-anchored off brand ink
+- [0015](0015-typed-errors-connectivity-offline-fallback.md) — Typed error model, connectivity monitor, and offline-map fallback
+- [0016](0016-map-attribution-and-settings-ia.md) — Map attribution relocated off-map; settings information architecture

@@ -35,6 +35,19 @@ sits under Unreleased until the first tag.
   the router's wall clock) surfacing ViewModel plumbing that previously had
   no UI, and a pinned "My location" row in the endpoint picker; manual board
   refresh from the boards header.
+- **Typed failures + connectivity**: a shared `sealed interface AppFailure`
+  (`core/api`) classifies every gateway error once at the shared→shell
+  boundary via `Throwable.toAppFailure(isOnline)`; a GMS-free `Connectivity`
+  monitor (`ConnectivityManager` on Android, `NWPathMonitor` on iOS) exposes
+  `isOnline` and splits transport failures into no-connection vs
+  server-unreachable; both shells render one inline state per category, and an
+  offline viewport covered by a downloaded area falls back to the offline map
+  style (ADR 0015).
+- An in-app **"About the map"** screen carrying the full "© OpenStreetMap
+  contributors" and "© OpenMapTiles" credits and OSS licenses, reached from
+  Settings; a persisted `hasSeenOnboarding` flag with a "Replay onboarding"
+  settings row (minimal onboarding; the full first-run flow stays a roadmap
+  item) (ADR 0016).
 
 ### Changed
 
@@ -66,9 +79,31 @@ sits under Unreleased until the first tag.
   cards, labeled segments, icon-led fields, richer leg timeline), search
   (category icons), boards (pill station picker, restructured rows) and
   place pages.
+- Light Material scheme re-anchored off `brand.ink` `#4248C9` (Vibrant ramp,
+  positive contrast) so the primary reads branded on near-white surfaces and
+  the surface-container ladder shows elevation; dark stays seeded from
+  `brand.seed #888FFA` (TonalSpot) as reviewed, and `#888FFA` remains the brand
+  identity color. iOS `.tint` follows suit (`#4248C9` light, `#888FFA` dark)
+  (ADR 0014, supersedes the light-mode seed of ADR 0013).
+- Map attribution moved off the map face: the on-map MapLibre "i" button is
+  gone, replaced by an always-visible tappable "© OpenStreetMap" credit over
+  the map and the dedicated "About the map" screen — the ODbL obligation is met
+  more clearly, and removing attribution outright is prohibited (ADR 0016).
+- Settings reorganized into sections — Appearance (theme, first), Map &
+  Location (style + Offline), About & Legal (version + attribution/licenses),
+  Help (replay onboarding + permission shortcut), Advanced (gateway origin
+  demoted to a dev field at the bottom) (ADR 0016).
+- Error UX unified across both shells: network failures on iOS no longer
+  collapse into "no results" or bare red text, and live-only surfaces
+  (planning, boards, search) show an honest no-connection state offline instead
+  of a dead end.
 
 ### Fixed
 
+- Keyboard-vs-sheet ordering: the search keyboard is presented before the sheet
+  settles so the field is focused without the sheet snapping under the IME.
+- Map compass tint corrected so the needle reads against both light and dark
+  map tiles.
 - Verification pass 1 (shared core vs the published contract): tolerate the
   gateway's synthetic string ids in geocoding results and hand station
   results straight to the boards surface; query-parameter encoding for
